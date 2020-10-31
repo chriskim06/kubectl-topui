@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+go run main.go metrics.go list.go plot.go
