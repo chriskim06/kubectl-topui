@@ -9,8 +9,6 @@ import (
 	"github.com/gizak/termui/v3/widgets"
 )
 
-var cpuData [][]float64 = [][]float64{}
-
 func main() {
 	m, err := getNodeMetrics()
 	if err != nil {
@@ -35,17 +33,23 @@ func main() {
 		lists[i].Title = NodeColumns[i]
 		lists[i].TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
 		lists[i].TextStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear}
-		lists[i].SelectedRowStyle = ui.Style{Bg: ui.ColorClear, Modifier: ui.ModifierBold}
+		lists[i].SelectedRowStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
 		lists[i].Border = false
 	}
 
-	// custom gauge list widget
+	// cpu and mem plots
+	cpuPlot := NewKubePlot()
+	cpuPlot.Border = false
+	memPlot := NewKubePlot()
+	memPlot.Border = false
+
+	// custom gauge list widgets
 	cpuGaugeList, memGaugeList := NewGaugeList(), NewGaugeList()
 	cpuGaugeList.Title = "CPU"
 	memGaugeList.Title = "Memory"
 	cpuGaugeList.TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
 	memGaugeList.TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
-	for _, item := range m {
+	for i, item := range m {
 		cpuItem := NewGaugeListItem(item.CPUPercent, item.Name)
 		memItem := NewGaugeListItem(item.MemPercent, item.Name)
 		cpuGaugeList.Rows = append(cpuGaugeList.Rows, cpuItem)
@@ -55,25 +59,33 @@ func main() {
 		lists[2].Rows = append(lists[2].Rows, fmt.Sprintf(" %v%%", item.CPUPercent))
 		lists[3].Rows = append(lists[3].Rows, fmt.Sprintf(" %vMi", item.MemCores/(1024*1024)))
 		lists[4].Rows = append(lists[4].Rows, fmt.Sprintf(" %v%%", item.MemPercent))
+		cpuPlot.LineColors = append(cpuPlot.LineColors, ui.Color(i))
+		cpuPlot.Data = append(cpuPlot.Data, []float64{0, float64(item.CPUPercent)})
+		memPlot.LineColors = append(memPlot.LineColors, ui.Color(i))
+		memPlot.Data = append(memPlot.Data, []float64{0, float64(item.MemPercent)})
 	}
+
+	// tab pane that holds the cpu/mem plots
+	tabplot := NewTabPlot([]string{"CPU Percent", "Mem Percent"}, []*KubePlot{cpuPlot, memPlot})
 
 	// use grid to keep relative height and width of terminal
 	grid := ui.NewGrid()
 	termWidth, termHeight := ui.TerminalDimensions()
 	grid.SetRect(0, 0, termWidth, termHeight)
 	grid.Set(
-		ui.NewCol(
-			2.0/5,
-			ui.NewCol(2.0/5, lists[0]),
-			ui.NewCol(0.75/5, lists[1]),
-			ui.NewCol(0.75/5, lists[2]),
-			ui.NewCol(0.75/5, lists[3]),
-			ui.NewCol(0.75/5, lists[4]),
-		),
-		ui.NewCol(
+		ui.NewRow(
 			3.0/5,
-			ui.NewRow(1.0/2, cpuGaugeList),
-			ui.NewRow(1.0/2, memGaugeList),
+			ui.NewCol(1.0/2, cpuGaugeList),
+			ui.NewCol(1.0/2, memGaugeList),
+		),
+		ui.NewRow(
+			2.0/5,
+			ui.NewCol(1.5/10, lists[0]),
+			ui.NewCol(0.75/10, lists[1]),
+			ui.NewCol(0.75/10, lists[2]),
+			ui.NewCol(0.75/10, lists[3]),
+			ui.NewCol(1.25/10, lists[4]),
+			ui.NewCol(5.0/10, tabplot),
 		),
 	)
 
@@ -81,7 +93,7 @@ func main() {
 	ui.Render(grid)
 
 	// create a goroutine that redraws the grid at each tick
-	go func(cpuGaugeList, memGaugeList *GaugeList, lists []*widgets.List) {
+	go func(cpuGaugeList, memGaugeList *GaugeList, lists []*widgets.List, cpuPlot, memPlot *KubePlot) {
 		for {
 			select {
 			case <-ticker.C:
@@ -96,7 +108,7 @@ func main() {
 				for i := 0; i < 5; i++ {
 					lists[i].Rows = nil
 				}
-				for _, v := range values {
+				for i, v := range values {
 					cpuItem := NewGaugeListItem(v.CPUPercent, v.Name)
 					memItem := NewGaugeListItem(v.MemPercent, v.Name)
 					cpuGaugeList.Rows = append(cpuGaugeList.Rows, cpuItem)
@@ -106,13 +118,15 @@ func main() {
 					lists[2].Rows = append(lists[2].Rows, fmt.Sprintf(" %v%%", v.CPUPercent))
 					lists[3].Rows = append(lists[3].Rows, fmt.Sprintf(" %vMi", v.MemCores/(1024*1024)))
 					lists[4].Rows = append(lists[4].Rows, fmt.Sprintf(" %v%%", v.MemPercent))
+					cpuPlot.Data[i] = append(cpuPlot.Data[i], float64(v.CPUPercent))
+					memPlot.Data[i] = append(memPlot.Data[i], float64(v.MemPercent))
 				}
 				ui.Render(grid)
 			case <-quit:
 				return
 			}
 		}
-	}(cpuGaugeList, memGaugeList, lists)
+	}(cpuGaugeList, memGaugeList, lists, cpuPlot, memPlot)
 
 	uiEvents := ui.PollEvents()
 	for {
@@ -134,6 +148,12 @@ func main() {
 			}
 			cpuGaugeList.ScrollUp()
 			memGaugeList.ScrollUp()
+			ui.Render(grid)
+		case "h", "<Left>":
+			tabplot.FocusLeft()
+			ui.Render(grid)
+		case "l", "<Right>":
+			tabplot.FocusRight()
 			ui.Render(grid)
 		case "<Resize>":
 			payload := e.Payload.(ui.Resize)
