@@ -28,7 +28,7 @@ const (
 func NewKubePlot() *KubePlot {
 	return &KubePlot{
 		Block:           *NewBlock(),
-		LineColors:      Theme.Plot.Lines,
+		LineColors:      []Color{},
 		Data:            [][]float64{},
 		HorizontalScale: 1,
 	}

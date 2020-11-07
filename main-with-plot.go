@@ -49,7 +49,7 @@ func main() {
 	memGaugeList.Title = "Memory"
 	cpuGaugeList.TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
 	memGaugeList.TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
-	for _, item := range m {
+	for i, item := range m {
 		cpuItem := NewGaugeListItem(item.CPUPercent, item.Name)
 		memItem := NewGaugeListItem(item.MemPercent, item.Name)
 		cpuGaugeList.Rows = append(cpuGaugeList.Rows, cpuItem)
@@ -59,7 +59,7 @@ func main() {
 		lists[2].Rows = append(lists[2].Rows, fmt.Sprintf(" %v%%", item.CPUPercent))
 		lists[3].Rows = append(lists[3].Rows, fmt.Sprintf(" %vMi", item.MemCores/(1024*1024)))
 		lists[4].Rows = append(lists[4].Rows, fmt.Sprintf(" %v%%", item.MemPercent))
-		//         lc.LineColors[i] = ui.Color(i + 1)
+		lc.LineColors = append(lc.LineColors, ui.Color(i))
 		lc.Data = append(lc.Data, []float64{0, float64(item.CPUPercent)})
 	}
 
