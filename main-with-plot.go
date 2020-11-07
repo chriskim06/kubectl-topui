@@ -9,8 +9,6 @@ import (
 	"github.com/gizak/termui/v3/widgets"
 )
 
-var cpuData [][]float64 = [][]float64{}
-
 func main() {
 	m, err := getNodeMetrics()
 	if err != nil {
@@ -39,9 +37,13 @@ func main() {
 		lists[i].Border = false
 	}
 
-	lc := NewKubePlot()
-	lc.Title = "CPU Percent"
-	lc.TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear}
+	cpuPlot := NewKubePlot()
+	cpuPlot.Title = "CPU Percent"
+	cpuPlot.TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear}
+
+	memPlot := NewKubePlot()
+	cpuPlot.Title = "Mem Percent"
+	cpuPlot.TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear}
 
 	// custom gauge list widget
 	cpuGaugeList, memGaugeList := NewGaugeList(), NewGaugeList()
@@ -59,8 +61,10 @@ func main() {
 		lists[2].Rows = append(lists[2].Rows, fmt.Sprintf(" %v%%", item.CPUPercent))
 		lists[3].Rows = append(lists[3].Rows, fmt.Sprintf(" %vMi", item.MemCores/(1024*1024)))
 		lists[4].Rows = append(lists[4].Rows, fmt.Sprintf(" %v%%", item.MemPercent))
-		lc.LineColors = append(lc.LineColors, ui.Color(i))
-		lc.Data = append(lc.Data, []float64{0, float64(item.CPUPercent)})
+		cpuPlot.LineColors = append(cpuPlot.LineColors, ui.Color(i))
+		cpuPlot.Data = append(cpuPlot.Data, []float64{0, float64(item.CPUPercent)})
+		memPlot.LineColors = append(memPlot.LineColors, ui.Color(i))
+		memPlot.Data = append(memPlot.Data, []float64{0, float64(item.MemPercent)})
 	}
 
 	// use grid to keep relative height and width of terminal
@@ -80,7 +84,7 @@ func main() {
 			ui.NewCol(0.75/10, lists[2]),
 			ui.NewCol(0.75/10, lists[3]),
 			ui.NewCol(1.25/10, lists[4]),
-			ui.NewCol(5.0/10, lc),
+			ui.NewCol(5.0/10, cpuPlot),
 		),
 	)
 
@@ -88,7 +92,7 @@ func main() {
 	ui.Render(grid)
 
 	// create a goroutine that redraws the grid at each tick
-	go func(cpuGaugeList, memGaugeList *GaugeList, lists []*widgets.List, lc *KubePlot) {
+	go func(cpuGaugeList, memGaugeList *GaugeList, lists []*widgets.List, cpuPlot, memPlot *KubePlot) {
 		for {
 			select {
 			case <-ticker.C:
@@ -113,14 +117,15 @@ func main() {
 					lists[2].Rows = append(lists[2].Rows, fmt.Sprintf(" %v%%", v.CPUPercent))
 					lists[3].Rows = append(lists[3].Rows, fmt.Sprintf(" %vMi", v.MemCores/(1024*1024)))
 					lists[4].Rows = append(lists[4].Rows, fmt.Sprintf(" %v%%", v.MemPercent))
-					lc.Data[i] = append(lc.Data[i], float64(v.CPUPercent))
+					cpuPlot.Data[i] = append(cpuPlot.Data[i], float64(v.CPUPercent))
+					memPlot.Data[i] = append(memPlot.Data[i], float64(v.MemPercent))
 				}
 				ui.Render(grid)
 			case <-quit:
 				return
 			}
 		}
-	}(cpuGaugeList, memGaugeList, lists, lc)
+	}(cpuGaugeList, memGaugeList, lists, cpuPlot, memPlot)
 
 	uiEvents := ui.PollEvents()
 	for {
