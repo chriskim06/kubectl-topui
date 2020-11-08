@@ -1,4 +1,4 @@
-package main
+package metrics
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/printers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubectl/pkg/cmd/top"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/metricsutil"
@@ -37,25 +37,34 @@ type NodeMetricsValues struct {
 	MemCores   int
 }
 
-func getNodeMetrics() ([]NodeMetricsValues, error) {
+func getClients() (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
 	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(kubeConfigFlags)
 	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
 
+	var err error
+	config, err := f.ToRESTConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	clientSet, err := f.KubernetesClientSet()
+	if err != nil {
+		return nil, nil, err
+	}
+	metricsClient, err := metricsclientset.NewForConfig(config)
+	return clientSet, metricsClient, err
+}
+
+func GetNodeMetrics() ([]NodeMetricsValues, error) {
 	ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	o := &top.TopNodeOptions{
 		IOStreams: ioStreams,
 	}
-	var err error
-	config, err := f.ToRESTConfig()
+	clientset, metricsClient, err := getClients()
 	if err != nil {
 		return nil, err
 	}
-	clientset, err := f.KubernetesClientSet()
-	if err != nil {
-		return nil, err
-	}
-	o.MetricsClient, err = metricsclientset.NewForConfig(config)
+	o.MetricsClient = metricsClient
 	o.NodeClient = clientset.CoreV1()
 	o.Printer = metricsutil.NewTopCmdPrinter(o.Out)
 
@@ -84,9 +93,6 @@ func getNodeMetrics() ([]NodeMetricsValues, error) {
 	for _, n := range nodes {
 		allocatable[n.Name] = n.Status.Allocatable
 	}
-
-	w := printers.GetNewTabWriter(os.Stdout)
-	defer w.Flush()
 
 	values := []NodeMetricsValues{}
 	for _, m := range metrics.Items {
