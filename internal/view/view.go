@@ -42,8 +42,10 @@ func Something() error {
 	// cpu and mem plots
 	cpuPlot := widgets.NewKubePlot()
 	cpuPlot.Border = false
+	cpuPlot.AxisMetric = "%"
 	memPlot := widgets.NewKubePlot()
 	memPlot.Border = false
+	memPlot.AxisMetric = "%"
 
 	// custom gauge list widgets
 	cpuGaugeList, memGaugeList := widgets.NewGaugeList(), widgets.NewGaugeList()

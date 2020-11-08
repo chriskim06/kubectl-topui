@@ -18,6 +18,7 @@ type KubePlot struct {
 	MaxVal          float64
 	LineColors      []Color
 	HorizontalScale int
+	AxisMetric      string
 }
 
 const (
@@ -67,20 +68,20 @@ func (self *KubePlot) renderBraille(buf *Buffer, drawArea image.Rectangle, maxVa
 func (self *KubePlot) plotAxes(buf *Buffer, maxVal float64) {
 	// draw origin cell
 	buf.SetCell(
-		NewCell(BOTTOM_LEFT, NewStyle(ColorWhite)),
+		NewCell(BOTTOM_LEFT, NewStyle(ColorClear)),
 		image.Pt(self.Inner.Min.X+yAxisLabelsWidth, self.Inner.Max.Y-1),
 	)
 	// draw x axis line
 	for i := yAxisLabelsWidth + 1; i < self.Inner.Dx(); i++ {
 		buf.SetCell(
-			NewCell(HORIZONTAL_DASH, NewStyle(ColorWhite)),
+			NewCell(HORIZONTAL_DASH, NewStyle(ColorClear)),
 			image.Pt(i+self.Inner.Min.X, self.Inner.Max.Y-1),
 		)
 	}
 	// draw y axis line
 	for i := 0; i < self.Inner.Dy()-1; i++ {
 		buf.SetCell(
-			NewCell(VERTICAL_DASH, NewStyle(ColorWhite)),
+			NewCell(VERTICAL_DASH, NewStyle(ColorClear)),
 			image.Pt(self.Inner.Min.X+yAxisLabelsWidth, i+self.Inner.Min.Y),
 		)
 	}
@@ -88,8 +89,8 @@ func (self *KubePlot) plotAxes(buf *Buffer, maxVal float64) {
 	verticalScale := maxVal / float64(self.Inner.Dy()-1)
 	for i := 0; i*(yAxisLabelsGap+1) < self.Inner.Dy()-1; i++ {
 		buf.SetString(
-			fmt.Sprintf("%.2f", float64(i)*verticalScale*(yAxisLabelsGap+1)),
-			NewStyle(ColorWhite),
+			fmt.Sprintf("%d%s", int64(float64(i)*verticalScale*(yAxisLabelsGap+1)), self.AxisMetric),
+			NewStyle(ColorClear),
 			image.Pt(self.Inner.Min.X, self.Inner.Max.Y-(i*(yAxisLabelsGap+1))-2),
 		)
 	}
