@@ -2,12 +2,15 @@ package metrics
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -16,6 +19,11 @@ import (
 	metricsapi "k8s.io/metrics/pkg/apis/metrics"
 	metricsv1beta1api "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
+
+type resourceLimits struct {
+	CPU int64
+	Mem int64
+}
 
 func GetPodMetrics(namespace string) ([]MetricsValues, error) {
 	ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
@@ -65,7 +73,40 @@ func GetPodMetrics(namespace string) ([]MetricsValues, error) {
 		}
 	}
 
-	return nil, nil
+	// maybe loop through containers and sum the cpu/mem limits to calculate percentages
+	podList, err := o.PodClient.Pods(ns).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var pods []v1.Pod
+	pods = append(pods, podList.Items...)
+	limits := getPodResourceLimits(pods)
+
+	values := []MetricsValues{}
+	for _, item := range metrics.Items {
+		// check if printing containers
+		podMetrics := getPodMetrics(&item)
+		cpuQuantity := podMetrics[v1.ResourceCPU]
+		cpuAvailable := limits[item.Name].CPU
+		cpuFraction := float64(cpuQuantity.MilliValue()) / float64(cpuAvailable) * 100
+		memQuantity := podMetrics[v1.ResourceMemory]
+		memAvailable := limits[item.Name].Mem
+		memFraction := float64(memQuantity.MilliValue()) / float64(memAvailable) * 100
+		values = append(values, MetricsValues{
+			Name:       item.Name,
+			CPUPercent: cpuFraction,
+			MemPercent: memFraction,
+			CPUCores:   int(cpuQuantity.MilliValue()),
+			MemCores:   int(memQuantity.Value()),
+		})
+	}
+
+	// Sort the metrics results somehow
+	sort.Slice(values, func(i, j int) bool {
+		return values[i].Name < values[j].Name
+	})
+
+	return values, nil
 }
 
 func verifyEmptyMetrics(o top.TopPodOptions, selector labels.Selector) error {
@@ -106,4 +147,46 @@ func checkPodAge(pod *v1.Pod) error {
 	} else {
 		return nil
 	}
+}
+
+func getPodMetrics(m *metricsapi.PodMetrics) v1.ResourceList {
+	podMetrics := make(v1.ResourceList)
+	for _, res := range MeasuredResources {
+		podMetrics[res], _ = resource.ParseQuantity("0")
+	}
+
+	for _, c := range m.Containers {
+		for _, res := range MeasuredResources {
+			quantity := podMetrics[res]
+			quantity.Add(c.Usage[res])
+			podMetrics[res] = quantity
+		}
+	}
+	return podMetrics
+}
+
+func jsonPrint(obj interface{}) {
+	json, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		fmt.Println("error printing json")
+		return
+	}
+	fmt.Println(string(json))
+}
+
+func getPodResourceLimits(pods []v1.Pod) map[string]resourceLimits {
+	limits := map[string]resourceLimits{}
+	for _, pod := range pods {
+		var cpuLimit, memLimit int64
+		for _, container := range pod.Spec.Containers {
+			containerLimits := container.Resources.Limits
+			cpuLimit += containerLimits.Cpu().MilliValue()
+			memLimit += containerLimits.Cpu().MilliValue()
+		}
+		limits[pod.Name] = resourceLimits{
+			CPU: cpuLimit,
+			Mem: memLimit,
+		}
+	}
+	return limits
 }

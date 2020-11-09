@@ -12,11 +12,11 @@ const (
 )
 
 type GaugeListItem struct {
-	Percent int
+	Percent float64
 	Label   string
 }
 
-func NewGaugeListItem(percent int, label string) *GaugeListItem {
+func NewGaugeListItem(percent float64, label string) *GaugeListItem {
 	return &GaugeListItem{
 		Percent: percent,
 		Label:   label,
@@ -69,7 +69,7 @@ func (self *GaugeList) Draw(buf *Buffer) {
 		)
 
 		// add percentage label
-		label := fmt.Sprintf("%d%%", gauge.Percent)
+		label := fmt.Sprintf("%.2f%%", gauge.Percent)
 		labelXCoordinate := point.X + 1 + (self.Inner.Dx() / 2) - int(float64(len(label))/2)
 		labelYCoordinate := point.Y + 1
 		if labelYCoordinate < self.Inner.Max.Y {

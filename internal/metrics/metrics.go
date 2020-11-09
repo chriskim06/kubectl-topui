@@ -21,8 +21,8 @@ var (
 
 type MetricsValues struct {
 	Name       string
-	CPUPercent int
-	MemPercent int
+	CPUPercent float64
+	MemPercent float64
 	CPUCores   int
 	MemCores   int
 }

@@ -60,14 +60,14 @@ func GetNodeMetrics() ([]MetricsValues, error) {
 	for _, m := range metrics.Items {
 		cpuQuantity := m.Usage[v1.ResourceCPU]
 		cpuAvailable := allocatable[m.Name][v1.ResourceCPU]
-		cpuFraction := int64(float64(cpuQuantity.MilliValue()) / float64(cpuAvailable.MilliValue()) * 100)
+		cpuFraction := float64(cpuQuantity.MilliValue()) / float64(cpuAvailable.MilliValue()) * 100
 		memQuantity := m.Usage[v1.ResourceMemory]
 		memAvailable := allocatable[m.Name][v1.ResourceMemory]
-		memFraction := int64(float64(memQuantity.MilliValue()) / float64(memAvailable.MilliValue()) * 100)
+		memFraction := float64(memQuantity.MilliValue()) / float64(memAvailable.MilliValue()) * 100
 		values = append(values, MetricsValues{
 			Name:       m.Name,
-			CPUPercent: int(cpuFraction),
-			MemPercent: int(memFraction),
+			CPUPercent: cpuFraction,
+			MemPercent: memFraction,
 			CPUCores:   int(cpuQuantity.MilliValue()),
 			MemCores:   int(memQuantity.Value()),
 		})

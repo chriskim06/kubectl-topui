@@ -10,7 +10,7 @@ var nodeCmd = &cobra.Command{
 	Short: "Show node metrics",
 	Long:  `Show various widgets for node metrics.`,
 	RunE: func(_ *cobra.Command, args []string) error {
-		return view.Something()
+		return view.Render(view.NODE)
 	},
 }
 
