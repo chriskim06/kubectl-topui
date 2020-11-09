@@ -17,7 +17,16 @@ const (
 )
 
 func Render(resource string) error {
-	m, err := metrics.GetNodeMetrics()
+	var m []metrics.MetricsValues
+	var err error
+	switch resource {
+	case POD:
+		m, err = metrics.GetPodMetrics()
+	case NODE:
+		m, err = metrics.GetNodeMetrics()
+	default:
+		return fmt.Errorf("unrecognized resource")
+	}
 	if err != nil {
 		return err
 	}
@@ -32,7 +41,7 @@ func Render(resource string) error {
 	lists := make([]*uiWidgets.List, 5)
 	for i := 0; i < 5; i++ {
 		lists[i] = uiWidgets.NewList()
-		lists[i].Title = metrics.NodeColumns[i]
+		lists[i].Title = metrics.Columns[i]
 		lists[i].TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
 		lists[i].TextStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear}
 		lists[i].SelectedRowStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
@@ -96,12 +105,18 @@ func Render(resource string) error {
 	quit := make(chan struct{})
 
 	// create a goroutine that redraws the grid at each tick
-	go func(cpuGaugeList, memGaugeList *widgets.GaugeList, lists []*uiWidgets.List, cpuPlot, memPlot *widgets.KubePlot) {
+	go func(resource string, cpuGaugeList, memGaugeList *widgets.GaugeList, lists []*uiWidgets.List, cpuPlot, memPlot *widgets.KubePlot) {
 		for {
 			select {
 			case <-ticker.C:
 				// update the widgets and render the grid with new node metrics
-				values, err := metrics.GetNodeMetrics()
+				var values []metrics.MetricsValues
+				var err error
+				if resource == POD {
+					values, err = metrics.GetPodMetrics()
+				} else {
+					values, err = metrics.GetNodeMetrics()
+				}
 				if err != nil {
 					log.Println(err)
 					return
@@ -112,7 +127,7 @@ func Render(resource string) error {
 				return
 			}
 		}
-	}(cpuGaugeList, memGaugeList, lists, cpuPlot, memPlot)
+	}(resource, cpuGaugeList, memGaugeList, lists, cpuPlot, memPlot)
 
 	uiEvents := ui.PollEvents()
 	for {

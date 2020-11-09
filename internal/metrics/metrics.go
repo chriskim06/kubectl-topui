@@ -13,10 +13,7 @@ var (
 		v1.ResourceCPU,
 		v1.ResourceMemory,
 	}
-	NodeColumns     = []string{"NAME", "CPU(cores)", "CPU%", "MEMORY(bytes)", "MEMORY%"}
-	PodColumns      = []string{"NAME", "CPU(cores)", "MEMORY(bytes)"}
-	NamespaceColumn = "NAMESPACE"
-	PodColumn       = "POD"
+	Columns = []string{"NAME", "CPU(cores)", "CPU%", "MEMORY(bytes)", "MEMORY%"}
 )
 
 type MetricsValues struct {
@@ -28,6 +25,24 @@ type MetricsValues struct {
 }
 
 func getClients() (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
+	clientSet, metricsClient, err := clientSets()
+	return clientSet, metricsClient, err
+}
+
+func getClientsAndNamespace() (*kubernetes.Clientset, *metricsclientset.Clientset, string, error) {
+	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
+	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(kubeConfigFlags)
+	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
+
+	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return nil, nil, "", err
+	}
+	clientSet, metricsClient, err := clientSets()
+	return clientSet, metricsClient, namespace, err
+}
+
+func clientSets() (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
 	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(kubeConfigFlags)
 	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)

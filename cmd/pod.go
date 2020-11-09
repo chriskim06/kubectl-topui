@@ -8,7 +8,10 @@ import (
 var podCmd = &cobra.Command{
 	Use:   "pod",
 	Short: "Show pod metrics",
-	Long:  `Show various widgets for pod metrics.`,
+	Long: `Show various widgets for pod metrics.
+
+CPU and memory percentages are calculated by getting the sum of the container
+limits/requests for a given pod.`,
 	RunE: func(_ *cobra.Command, args []string) error {
 		return view.Render(view.POD)
 	},

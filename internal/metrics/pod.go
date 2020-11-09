@@ -25,23 +25,22 @@ type resourceLimits struct {
 	Mem int64
 }
 
-func GetPodMetrics(namespace string) ([]MetricsValues, error) {
+func GetPodMetrics() ([]MetricsValues, error) {
 	ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	o := &top.TopPodOptions{
 		IOStreams: ioStreams,
 	}
-	clientset, metricsClient, err := getClients()
+	clientset, metricsClient, ns, err := getClientsAndNamespace()
 	if err != nil {
 		return nil, err
+	}
+	if ns == "" {
+		ns = metav1.NamespaceAll
 	}
 	o.MetricsClient = metricsClient
 	o.PodClient = clientset.CoreV1()
 	o.Printer = metricsutil.NewTopCmdPrinter(o.Out)
 
-	ns := metav1.NamespaceAll
-	if namespace != "" {
-		ns = namespace
-	}
 	versionedMetrics := &metricsv1beta1api.PodMetricsList{}
 	mc := o.MetricsClient.MetricsV1beta1()
 	pm := mc.PodMetricses(ns)
@@ -179,9 +178,13 @@ func getPodResourceLimits(pods []v1.Pod) map[string]resourceLimits {
 	for _, pod := range pods {
 		var cpuLimit, memLimit int64
 		for _, container := range pod.Spec.Containers {
-			containerLimits := container.Resources.Limits
-			cpuLimit += containerLimits.Cpu().MilliValue()
-			memLimit += containerLimits.Cpu().MilliValue()
+			if len(container.Resources.Limits) != 0 {
+				cpuLimit += container.Resources.Limits.Cpu().MilliValue()
+				memLimit += container.Resources.Limits.Memory().MilliValue()
+			} else {
+				cpuLimit += container.Resources.Requests.Cpu().MilliValue()
+				memLimit += container.Resources.Requests.Memory().MilliValue()
+			}
 		}
 		limits[pod.Name] = resourceLimits{
 			CPU: cpuLimit,
