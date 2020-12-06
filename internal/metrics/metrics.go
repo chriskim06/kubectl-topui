@@ -24,31 +24,30 @@ type MetricsValues struct {
 	MemCores   int
 }
 
-func getClients() (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
-	clientSet, metricsClient, err := clientSets()
+func getClients(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
+	clientSet, metricsClient, err := clientSets(flags)
 	return clientSet, metricsClient, err
 }
 
-func getClientsAndNamespace() (*kubernetes.Clientset, *metricsclientset.Clientset, string, error) {
-	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
-	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(kubeConfigFlags)
+func getClientsAndNamespace(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, string, error) {
+	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
 	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
 
 	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return nil, nil, "", err
 	}
-	clientSet, metricsClient, err := clientSets()
+	clientSet, metricsClient, err := clientSets(flags)
 	return clientSet, metricsClient, namespace, err
 }
 
-func clientSets() (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
-	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
-	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(kubeConfigFlags)
+func clientSets(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
+	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
 	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
 
 	var err error
 	config, err := f.ToRESTConfig()
+	flags.ToRESTConfig()
 	if err != nil {
 		return nil, nil, err
 	}

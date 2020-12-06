@@ -15,12 +15,12 @@ import (
 	metricsV1beta1api "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
-func GetNodeMetrics() ([]MetricsValues, error) {
+func GetNodeMetrics(flags *genericclioptions.ConfigFlags) ([]MetricsValues, error) {
 	ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	o := &top.TopNodeOptions{
 		IOStreams: ioStreams,
 	}
-	clientset, metricsClient, err := getClients()
+	clientset, metricsClient, err := getClients(flags)
 	if err != nil {
 		return nil, err
 	}

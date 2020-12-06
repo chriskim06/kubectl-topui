@@ -6,17 +6,20 @@ import (
 )
 
 var podCmd = &cobra.Command{
-	Use:   "pod",
-	Short: "Show pod metrics",
+	Use:     "pod",
+	Aliases: []string{"pods"},
+	Short:   "Show pod metrics",
 	Long: `Show various widgets for pod metrics.
 
 CPU and memory percentages are calculated by getting the sum of the container
 limits/requests for a given pod.`,
+	Args: cobra.NoArgs,
 	RunE: func(_ *cobra.Command, args []string) error {
-		return view.Render(view.POD)
+		return view.Render(flags, view.POD)
 	},
 }
 
 func init() {
+	flags.AddFlags(podCmd.Flags())
 	rootCmd.AddCommand(podCmd)
 }

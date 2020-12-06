@@ -9,6 +9,7 @@ import (
 	"github.com/chriskim06/kubectl-ptop/internal/view/widgets"
 	ui "github.com/gizak/termui/v3"
 	uiWidgets "github.com/gizak/termui/v3/widgets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 const (
@@ -16,14 +17,14 @@ const (
 	NODE = "node"
 )
 
-func Render(resource string) error {
+func Render(flags *genericclioptions.ConfigFlags, resource string) error {
 	var m []metrics.MetricsValues
 	var err error
 	switch resource {
 	case POD:
-		m, err = metrics.GetPodMetrics()
+		m, err = metrics.GetPodMetrics(flags)
 	case NODE:
-		m, err = metrics.GetNodeMetrics()
+		m, err = metrics.GetNodeMetrics(flags)
 	default:
 		return fmt.Errorf("unrecognized resource")
 	}
@@ -105,7 +106,7 @@ func Render(resource string) error {
 	quit := make(chan struct{})
 
 	// create a goroutine that redraws the grid at each tick
-	go func(resource string, cpuGaugeList, memGaugeList *widgets.GaugeList, lists []*uiWidgets.List, cpuPlot, memPlot *widgets.KubePlot) {
+	go func(flags *genericclioptions.ConfigFlags, resource string, cpuGaugeList, memGaugeList *widgets.GaugeList, lists []*uiWidgets.List, cpuPlot, memPlot *widgets.KubePlot) {
 		for {
 			select {
 			case <-ticker.C:
@@ -113,9 +114,9 @@ func Render(resource string) error {
 				var values []metrics.MetricsValues
 				var err error
 				if resource == POD {
-					values, err = metrics.GetPodMetrics()
+					values, err = metrics.GetPodMetrics(flags)
 				} else {
-					values, err = metrics.GetNodeMetrics()
+					values, err = metrics.GetNodeMetrics(flags)
 				}
 				if err != nil {
 					log.Println(err)
@@ -127,7 +128,7 @@ func Render(resource string) error {
 				return
 			}
 		}
-	}(resource, cpuGaugeList, memGaugeList, lists, cpuPlot, memPlot)
+	}(flags, resource, cpuGaugeList, memGaugeList, lists, cpuPlot, memPlot)
 
 	uiEvents := ui.PollEvents()
 	for {

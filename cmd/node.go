@@ -6,14 +6,16 @@ import (
 )
 
 var nodeCmd = &cobra.Command{
-	Use:   "node",
-	Short: "Show node metrics",
-	Long:  `Show various widgets for node metrics.`,
+	Use:     "node",
+	Aliases: []string{"nodes"},
+	Short:   "Show node metrics",
+	Long:    `Show various widgets for node metrics.`,
 	RunE: func(_ *cobra.Command, args []string) error {
-		return view.Render(view.NODE)
+		return view.Render(flags, view.NODE)
 	},
 }
 
 func init() {
+	flags.AddFlags(nodeCmd.Flags())
 	rootCmd.AddCommand(nodeCmd)
 }

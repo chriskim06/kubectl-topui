@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -25,12 +24,12 @@ type resourceLimits struct {
 	Mem int64
 }
 
-func GetPodMetrics() ([]MetricsValues, error) {
+func GetPodMetrics(flags *genericclioptions.ConfigFlags) ([]MetricsValues, error) {
 	ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	o := &top.TopPodOptions{
 		IOStreams: ioStreams,
 	}
-	clientset, metricsClient, ns, err := getClientsAndNamespace()
+	clientset, metricsClient, ns, err := getClientsAndNamespace(flags)
 	if err != nil {
 		return nil, err
 	}
@@ -162,15 +161,6 @@ func getPodMetrics(m *metricsapi.PodMetrics) v1.ResourceList {
 		}
 	}
 	return podMetrics
-}
-
-func jsonPrint(obj interface{}) {
-	json, err := json.MarshalIndent(obj, "", "  ")
-	if err != nil {
-		fmt.Println("error printing json")
-		return
-	}
-	fmt.Println(string(json))
 }
 
 func getPodResourceLimits(pods []v1.Pod) map[string]resourceLimits {
