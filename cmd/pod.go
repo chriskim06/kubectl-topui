@@ -34,9 +34,6 @@ limits/requests for a given pod.`,
 
 func init() {
 	podCmd.Flags().StringVarP(&podOpts.Selector, "selector", "l", podOpts.Selector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
-	podCmd.Flags().StringVar(&podOpts.SortBy, "sort-by", podOpts.Selector, "If non-empty, sort pods list using specified field. The field can be either 'cpu' or 'memory'.")
-	podCmd.Flags().BoolVar(&podOpts.PrintContainers, "containers", podOpts.PrintContainers, "If present, print usage of containers within a pod.")
-	podCmd.Flags().BoolVarP(&podOpts.AllNamespaces, "all-namespaces", "A", podOpts.AllNamespaces, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 	flags.AddFlags(podCmd.Flags())
 	rootCmd.AddCommand(podCmd)
 }

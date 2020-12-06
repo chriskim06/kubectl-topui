@@ -30,7 +30,6 @@ var (
 
 func init() {
 	nodeCmd.Flags().StringVarP(&nodeOpts.Selector, "selector", "l", nodeOpts.Selector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
-	nodeCmd.Flags().StringVar(&nodeOpts.SortBy, "sort-by", nodeOpts.Selector, "If non-empty, sort nodes list using specified field. The field can be either 'cpu' or 'memory'.")
 	flags.AddFlags(nodeCmd.Flags())
 	rootCmd.AddCommand(nodeCmd)
 }
