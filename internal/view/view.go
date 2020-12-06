@@ -38,6 +38,9 @@ const (
 	SortByMemoryPercent = "memory-percent"
 )
 
+var columns = []string{"NAME", "CPU(cores)", "CPU%", "MEMORY(bytes)", "MEMORY%"}
+
+// Render gets the resource metrics and initializes the termui widgets
 func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource string) error {
 	var m []metrics.MetricsValues
 	var err error
@@ -68,7 +71,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	lists := make([]*uiWidgets.List, 5)
 	for i := 0; i < 5; i++ {
 		lists[i] = uiWidgets.NewList()
-		lists[i].Title = metrics.Columns[i]
+		lists[i].Title = columns[i]
 		lists[i].TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
 		lists[i].TextStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear}
 		lists[i].SelectedRowStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}

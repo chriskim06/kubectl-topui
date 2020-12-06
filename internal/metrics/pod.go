@@ -33,11 +33,15 @@ import (
 	metricsv1beta1api "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
+const metricsCreationDelay = 2 * time.Minute
+
 type resourceLimits struct {
 	CPU int64
 	Mem int64
 }
 
+// GetPodMetrics returns a slice of objects that are meant to be easily
+// consumable by the various termui widgets
 func GetPodMetrics(o *top.TopPodOptions, flags *genericclioptions.ConfigFlags) ([]MetricsValues, error) {
 	clientset, metricsClient, ns, err := getClientsAndNamespace(flags)
 	if err != nil {
@@ -100,7 +104,6 @@ func GetPodMetrics(o *top.TopPodOptions, flags *genericclioptions.ConfigFlags) (
 
 	values := []MetricsValues{}
 	for _, item := range metrics.Items {
-		// check if printing containers
 		podMetrics := getPodMetrics(&item)
 		cpuQuantity := podMetrics[v1.ResourceCPU]
 		cpuAvailable := limits[item.Name].CPU
@@ -153,8 +156,6 @@ func verifyEmptyMetrics(o top.TopPodOptions, selector labels.Selector) error {
 	return errors.New("metrics not available yet")
 }
 
-const metricsCreationDelay = 2 * time.Minute
-
 func checkPodAge(pod *v1.Pod) error {
 	age := time.Since(pod.CreationTimestamp.Time)
 	if age > metricsCreationDelay {
@@ -167,12 +168,12 @@ func checkPodAge(pod *v1.Pod) error {
 
 func getPodMetrics(m *metricsapi.PodMetrics) v1.ResourceList {
 	podMetrics := make(v1.ResourceList)
-	for _, res := range MeasuredResources {
+	for _, res := range metricsutil.MeasuredResources {
 		podMetrics[res], _ = resource.ParseQuantity("0")
 	}
 
 	for _, c := range m.Containers {
-		for _, res := range MeasuredResources {
+		for _, res := range metricsutil.MeasuredResources {
 			quantity := podMetrics[res]
 			quantity.Add(c.Usage[res])
 			podMetrics[res] = quantity

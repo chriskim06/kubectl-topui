@@ -29,6 +29,8 @@ import (
 	metricsV1beta1api "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
+// GetNodeMetrics returns a slice of objects that are meant to be easily
+// consumable by the various termui widgets
 func GetNodeMetrics(o *top.TopNodeOptions, flags *genericclioptions.ConfigFlags) ([]MetricsValues, error) {
 	clientset, metricsClient, err := getClients(flags)
 	if err != nil {

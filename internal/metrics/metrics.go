@@ -16,21 +16,14 @@ limitations under the License.
 package metrics
 
 import (
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
-var (
-	MeasuredResources = []v1.ResourceName{
-		v1.ResourceCPU,
-		v1.ResourceMemory,
-	}
-	Columns = []string{"NAME", "CPU(cores)", "CPU%", "MEMORY(bytes)", "MEMORY%"}
-)
-
+// MetricsValues is an object containing the cpu/memory resources for
+// a pod/node that is used to populate termui widgets
 type MetricsValues struct {
 	Name       string
 	CPUPercent float64

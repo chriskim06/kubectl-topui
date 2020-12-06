@@ -26,11 +26,13 @@ const (
 	rowHeight = 3
 )
 
+// GaugeListItem is a single resource gauge in the gauge list
 type GaugeListItem struct {
 	Percent float64
 	Label   string
 }
 
+// NewGaugeListItem instantiates a resource gauge
 func NewGaugeListItem(percent float64, label string) *GaugeListItem {
 	return &GaugeListItem{
 		Percent: percent,
@@ -38,14 +40,17 @@ func NewGaugeListItem(percent float64, label string) *GaugeListItem {
 	}
 }
 
+// GaugeList is a custom widget of GaugeListItems with other metadata
 type GaugeList struct {
 	Block
+
 	Rows             []*GaugeListItem
 	SelectedRow      int
 	SelectedRowStyle Style
 	topRow           int
 }
 
+// NewGaugeList instantiates a new gauge list
 func NewGaugeList() *GaugeList {
 	return &GaugeList{
 		Block:            *NewBlock(),
@@ -53,6 +58,7 @@ func NewGaugeList() *GaugeList {
 	}
 }
 
+// Draw renders the gauge list
 func (self *GaugeList) Draw(buf *Buffer) {
 	self.Block.Draw(buf)
 
@@ -154,39 +160,12 @@ func (self *GaugeList) ScrollAmount(amount int) {
 	}
 }
 
+// ScrollUp scrolls up by 1
 func (self *GaugeList) ScrollUp() {
 	self.ScrollAmount(-1)
 }
 
+// ScrollDown scrolls down by 1
 func (self *GaugeList) ScrollDown() {
 	self.ScrollAmount(1)
-}
-
-func (self *GaugeList) ScrollPageUp() {
-	// If an item is selected below top row, then go to the top row.
-	if self.SelectedRow > self.topRow {
-		self.SelectedRow = self.topRow
-	} else {
-		self.ScrollAmount(-self.Inner.Dy())
-	}
-}
-
-func (self *GaugeList) ScrollPageDown() {
-	self.ScrollAmount(self.Inner.Dy())
-}
-
-func (self *GaugeList) ScrollHalfPageUp() {
-	self.ScrollAmount(-int(FloorFloat64(float64(self.Inner.Dy()) / 2)))
-}
-
-func (self *GaugeList) ScrollHalfPageDown() {
-	self.ScrollAmount(int(FloorFloat64(float64(self.Inner.Dy()) / 2)))
-}
-
-func (self *GaugeList) ScrollTop() {
-	self.SelectedRow = 0
-}
-
-func (self *GaugeList) ScrollBottom() {
-	self.SelectedRow = len(self.Rows) - 1
 }

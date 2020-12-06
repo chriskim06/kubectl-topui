@@ -21,6 +21,7 @@ import (
 	. "github.com/gizak/termui/v3"
 )
 
+// TabPlot is a custom widget that contains multiple KubePlot objects
 type TabPlot struct {
 	Block
 
@@ -31,6 +32,7 @@ type TabPlot struct {
 	InactiveTabStyle Style
 }
 
+// NewTabPlot instantiates a tab plot
 func NewTabPlot(names []string, plots []*KubePlot) *TabPlot {
 	return &TabPlot{
 		Block:            *NewBlock(),
@@ -41,6 +43,7 @@ func NewTabPlot(names []string, plots []*KubePlot) *TabPlot {
 	}
 }
 
+// FocusNext switches the tab focus to the next tab
 func (self *TabPlot) FocusNext() {
 	lastIdx := len(self.TabNames) - 1
 	if self.ActiveTabIndex < lastIdx {
@@ -50,18 +53,21 @@ func (self *TabPlot) FocusNext() {
 	}
 }
 
+// FocusLeft switches the tab focus one to the left
 func (self *TabPlot) FocusLeft() {
 	if self.ActiveTabIndex > 0 {
 		self.ActiveTabIndex--
 	}
 }
 
+// FocusRight switches the tab focus one to the right
 func (self *TabPlot) FocusRight() {
 	if self.ActiveTabIndex < len(self.TabNames)-1 {
 		self.ActiveTabIndex++
 	}
 }
 
+// Draw renders the tab plot
 func (self *TabPlot) Draw(buf *Buffer) {
 	self.Block.Draw(buf)
 

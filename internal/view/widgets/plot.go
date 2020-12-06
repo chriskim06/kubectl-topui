@@ -22,10 +22,12 @@ import (
 	. "github.com/gizak/termui/v3"
 )
 
-// Plot has two modes: line(default) and scatter.
-// Plot also has two marker types: braille(default) and dot.
-// A single braille character is a 2x4 grid of dots, so using braille
-// gives 2x X resolution and 4x Y resolution over dot mode.
+const (
+	yAxisLabelsWidth = 4
+	yAxisLabelsGap   = 1
+)
+
+// KubePlot is a custom widget that plots the resources
 type KubePlot struct {
 	Block
 
@@ -36,11 +38,7 @@ type KubePlot struct {
 	AxisMetric      string
 }
 
-const (
-	yAxisLabelsWidth = 4
-	yAxisLabelsGap   = 1
-)
-
+// NewKubePlot instantiates a new plot
 func NewKubePlot() *KubePlot {
 	return &KubePlot{
 		Block:           *NewBlock(),
@@ -111,6 +109,7 @@ func (self *KubePlot) plotAxes(buf *Buffer, maxVal float64) {
 	}
 }
 
+// Draw renders the plot
 func (self *KubePlot) Draw(buf *Buffer) {
 	self.Block.Draw(buf)
 
