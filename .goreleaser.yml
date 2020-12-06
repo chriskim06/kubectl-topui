@@ -7,9 +7,6 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-- id: kubectl-ptop
-  main: ./
-  binary: kubectl-ptop
   env:
   - CGO_ENABLED=0
   goos:
@@ -18,8 +15,6 @@ builds:
   goarch:
   - amd64
 archives:
-- builds:
-  - kubectl-ptop
   name_template: "{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
   wrap_in_directory: false
   format: tar.gz
