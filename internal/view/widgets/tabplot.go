@@ -68,17 +68,19 @@ func (self *TabPlot) Draw(buf *Buffer) {
 	// draw tab names
 	xCoordinate := self.Inner.Min.X
 	for i, name := range self.TabNames {
+		tabName := "  " + name
 		ColorPair := self.InactiveTabStyle
 		if i == self.ActiveTabIndex {
 			ColorPair = self.ActiveTabStyle
+			tabName = "* " + name
 		}
 		buf.SetString(
-			TrimString(name, self.Inner.Max.X-xCoordinate),
+			TrimString(tabName, self.Inner.Max.X-xCoordinate),
 			ColorPair,
 			image.Pt(xCoordinate, self.Inner.Min.Y),
 		)
 
-		xCoordinate += 1 + len(name)
+		xCoordinate += 1 + len(tabName)
 
 		if i < len(self.TabNames)-1 && xCoordinate < self.Inner.Max.X {
 			buf.SetCell(
