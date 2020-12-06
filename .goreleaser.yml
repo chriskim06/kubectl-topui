@@ -8,8 +8,6 @@ before:
     - go generate ./...
 builds:
 - id: kubectl-ptop
-  main: ./
-  binary: kubectl-ptop
   env:
   - CGO_ENABLED=0
   goos:
