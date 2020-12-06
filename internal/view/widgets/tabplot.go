@@ -41,6 +41,15 @@ func NewTabPlot(names []string, plots []*KubePlot) *TabPlot {
 	}
 }
 
+func (self *TabPlot) FocusNext() {
+	lastIdx := len(self.TabNames) - 1
+	if self.ActiveTabIndex < lastIdx {
+		self.ActiveTabIndex++
+	} else if self.ActiveTabIndex == lastIdx {
+		self.ActiveTabIndex = 0
+	}
+}
+
 func (self *TabPlot) FocusLeft() {
 	if self.ActiveTabIndex > 0 {
 		self.ActiveTabIndex--

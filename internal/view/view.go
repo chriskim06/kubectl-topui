@@ -179,6 +179,9 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 			cpuGaugeList.ScrollUp()
 			memGaugeList.ScrollUp()
 			ui.Render(grid)
+		case "<Tab>":
+			tabplot.FocusNext()
+			ui.Render(grid)
 		case "h", "<Left>":
 			tabplot.FocusLeft()
 			ui.Render(grid)
