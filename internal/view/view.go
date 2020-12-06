@@ -18,6 +18,7 @@ package view
 import (
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
@@ -29,19 +30,26 @@ import (
 )
 
 const (
-	POD  = "pod"
-	NODE = "node"
+	POD                 = "pod"
+	NODE                = "node"
+	SortByCpu           = "cpu"
+	SortByMemory        = "memory"
+	SortByCpuPercent    = "cpu-percent"
+	SortByMemoryPercent = "memory-percent"
 )
 
 func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource string) error {
 	var m []metrics.MetricsValues
 	var err error
+	var sortBy string
 	switch resource {
 	case POD:
 		o := options.(*top.TopPodOptions)
+		sortBy = o.SortBy
 		m, err = metrics.GetPodMetrics(o, flags)
 	case NODE:
 		o := options.(*top.TopNodeOptions)
+		sortBy = o.SortBy
 		m, err = metrics.GetNodeMetrics(o, flags)
 	default:
 		return fmt.Errorf("unrecognized resource")
@@ -92,7 +100,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	tabplot := widgets.NewTabPlot([]string{"CPU Percent", "Mem Percent"}, []*widgets.KubePlot{cpuPlot, memPlot})
 
 	// populate widgets initially
-	fillWidgetData(m, lists, cpuGaugeList, memGaugeList, cpuPlot, memPlot)
+	fillWidgetData(m, lists, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
 
 	// use grid to keep relative height and width of terminal
 	grid := ui.NewGrid()
@@ -142,7 +150,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 					log.Println(err)
 					return
 				}
-				fillWidgetData(values, lists, cpuGaugeList, memGaugeList, cpuPlot, memPlot)
+				fillWidgetData(values, lists, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
 				ui.Render(grid)
 			case <-quit:
 				return
@@ -186,11 +194,29 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	}
 }
 
-func fillWidgetData(metrics []metrics.MetricsValues, resourceLists []*uiWidgets.List, cpuGaugeList, memGaugeList *widgets.GaugeList, cpuPlot, memPlot *widgets.KubePlot) {
+func fillWidgetData(metrics []metrics.MetricsValues, resourceLists []*uiWidgets.List, cpuGaugeList, memGaugeList *widgets.GaugeList, cpuPlot, memPlot *widgets.KubePlot, sortBy string) {
 	cpuGaugeList.Rows = nil
 	memGaugeList.Rows = nil
 	for i := 0; i < 5; i++ {
 		resourceLists[i].Rows = nil
+	}
+	switch sortBy {
+	case SortByCpu:
+		sort.Slice(metrics, func(i, j int) bool {
+			return metrics[i].CPUCores > metrics[j].CPUCores
+		})
+	case SortByMemory:
+		sort.Slice(metrics, func(i, j int) bool {
+			return metrics[i].MemCores > metrics[j].MemCores
+		})
+	case SortByCpuPercent:
+		sort.Slice(metrics, func(i, j int) bool {
+			return metrics[i].CPUPercent > metrics[j].CPUPercent
+		})
+	case SortByMemoryPercent:
+		sort.Slice(metrics, func(i, j int) bool {
+			return metrics[i].MemPercent > metrics[j].MemPercent
+		})
 	}
 	for i, v := range metrics {
 		cpuItem := widgets.NewGaugeListItem(v.CPUPercent, v.Name)

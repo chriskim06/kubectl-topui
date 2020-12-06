@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/chriskim06/kubectl-ptop/internal/view"
@@ -36,8 +37,18 @@ var (
 		Use:     "node",
 		Aliases: []string{"nodes"},
 		Short:   "Show node metrics",
-		Long:    `Show various widgets for node metrics.`,
+		Long: `Show various widgets for node metrics.
+
+Keyboard Shortcuts:
+  - q: quit
+  - j: scroll down
+  - k: scroll up
+  - h: move to left graph panel
+  - l: move to right graph panel`,
 		RunE: func(_ *cobra.Command, args []string) error {
+			if !isValidSortKey(nodeOpts.SortBy) {
+				return fmt.Errorf("--sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
+			}
 			return view.Render(nodeOpts, flags, view.NODE)
 		},
 	}
@@ -45,6 +56,7 @@ var (
 
 func init() {
 	nodeCmd.Flags().StringVarP(&nodeOpts.Selector, "selector", "l", nodeOpts.Selector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
+	nodeCmd.Flags().StringVar(&nodeOpts.SortBy, "sort-by", nodeOpts.Selector, "If non-empty, sort pods list using specified field. The field can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'.")
 	flags.AddFlags(nodeCmd.Flags())
 	rootCmd.AddCommand(nodeCmd)
 }
