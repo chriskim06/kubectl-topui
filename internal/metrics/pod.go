@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"sort"
 	"time"
 
@@ -24,11 +23,7 @@ type resourceLimits struct {
 	Mem int64
 }
 
-func GetPodMetrics(flags *genericclioptions.ConfigFlags) ([]MetricsValues, error) {
-	ioStreams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
-	o := &top.TopPodOptions{
-		IOStreams: ioStreams,
-	}
+func GetPodMetrics(o *top.TopPodOptions, flags *genericclioptions.ConfigFlags) ([]MetricsValues, error) {
 	clientset, metricsClient, ns, err := getClientsAndNamespace(flags)
 	if err != nil {
 		return nil, err
@@ -44,8 +39,16 @@ func GetPodMetrics(flags *genericclioptions.ConfigFlags) ([]MetricsValues, error
 	mc := o.MetricsClient.MetricsV1beta1()
 	pm := mc.PodMetricses(ns)
 
+	selector := labels.Everything()
+	if len(o.Selector) > 0 {
+		selector, err = labels.Parse(o.Selector)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// handle getting all or with resource name
-	versionedMetrics, err = pm.List(context.TODO(), metav1.ListOptions{LabelSelector: labels.Everything().String()})
+	versionedMetrics, err = pm.List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		return nil, err
 	}

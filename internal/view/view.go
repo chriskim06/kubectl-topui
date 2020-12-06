@@ -10,6 +10,7 @@ import (
 	ui "github.com/gizak/termui/v3"
 	uiWidgets "github.com/gizak/termui/v3/widgets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/kubectl/pkg/cmd/top"
 )
 
 const (
@@ -17,14 +18,16 @@ const (
 	NODE = "node"
 )
 
-func Render(flags *genericclioptions.ConfigFlags, resource string) error {
+func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource string) error {
 	var m []metrics.MetricsValues
 	var err error
 	switch resource {
 	case POD:
-		m, err = metrics.GetPodMetrics(flags)
+		o := options.(*top.TopPodOptions)
+		m, err = metrics.GetPodMetrics(o, flags)
 	case NODE:
-		m, err = metrics.GetNodeMetrics(flags)
+		o := options.(*top.TopNodeOptions)
+		m, err = metrics.GetNodeMetrics(o, flags)
 	default:
 		return fmt.Errorf("unrecognized resource")
 	}
@@ -114,9 +117,11 @@ func Render(flags *genericclioptions.ConfigFlags, resource string) error {
 				var values []metrics.MetricsValues
 				var err error
 				if resource == POD {
-					values, err = metrics.GetPodMetrics(flags)
+					o := options.(*top.TopPodOptions)
+					values, err = metrics.GetPodMetrics(o, flags)
 				} else {
-					values, err = metrics.GetNodeMetrics(flags)
+					o := options.(*top.TopNodeOptions)
+					values, err = metrics.GetNodeMetrics(o, flags)
 				}
 				if err != nil {
 					log.Println(err)

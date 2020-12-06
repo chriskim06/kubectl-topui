@@ -89,7 +89,7 @@ func (self *KubePlot) plotAxes(buf *Buffer, maxVal float64) {
 	verticalScale := maxVal / float64(self.Inner.Dy()-1)
 	for i := 0; i*(yAxisLabelsGap+1) < self.Inner.Dy()-1; i++ {
 		buf.SetString(
-			fmt.Sprintf("%d%s", int64(float64(i)*verticalScale*(yAxisLabelsGap+1)), self.AxisMetric),
+			fmt.Sprintf("%.2f%s", float64(i)*verticalScale*(yAxisLabelsGap+1), self.AxisMetric),
 			NewStyle(ColorClear),
 			image.Pt(self.Inner.Min.X, self.Inner.Max.Y-(i*(yAxisLabelsGap+1))-2),
 		)
