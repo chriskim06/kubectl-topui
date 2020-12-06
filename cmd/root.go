@@ -35,7 +35,7 @@ var rootCmd = &cobra.Command{
 
 This shows separate lists of gauges for the CPU and memory. It also has a panel
 that displays the CPU and memory percentage graphs for the lifespan of the
-command invocation. The standard top output is also displayed
+command invocation. The standard top output is also displayed.
 
 Keyboard Shortcuts:
   - q: quit
