@@ -40,12 +40,11 @@ func GetNodeMetrics(o *top.TopNodeOptions, flags *genericclioptions.ConfigFlags)
 	o.NodeClient = clientset.CoreV1()
 	o.Printer = metricsutil.NewTopCmdPrinter(o.Out)
 
-	versionedMetrics := &metricsV1beta1api.NodeMetricsList{}
 	mc := o.MetricsClient.MetricsV1beta1()
 	nm := mc.NodeMetricses()
 
 	// handle getting all or with resource name
-	versionedMetrics, err = nm.List(context.TODO(), metav1.ListOptions{LabelSelector: labels.Everything().String()})
+	versionedMetrics, err := nm.List(context.TODO(), metav1.ListOptions{LabelSelector: labels.Everything().String()})
 	if err != nil {
 		return nil, err
 	}

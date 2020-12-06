@@ -24,14 +24,12 @@ import (
 )
 
 var (
-	flags = genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
-)
-
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "ptop",
-	Short: "Prettier kubectl top output",
-	Long: `Render kubectl top output with fancier widgets!
+	flags    = genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
+	interval = 5
+	rootCmd  = &cobra.Command{
+		Use:   "ptop",
+		Short: "Prettier kubectl top output",
+		Long: `Render kubectl top output with fancier widgets!
 
 This shows separate lists of gauges for the CPU and memory. It also has a panel
 that displays the CPU and memory percentage graphs for the lifespan of the
@@ -43,8 +41,9 @@ Keyboard Shortcuts:
   - k: scroll up
   - h: move to left graph panel
   - l: move to right graph panel`,
-	Args: cobra.NoArgs,
-}
+		Args: cobra.NoArgs,
+	}
+)
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.

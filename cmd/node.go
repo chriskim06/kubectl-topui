@@ -49,7 +49,7 @@ Keyboard Shortcuts:
 			if !isValidSortKey(nodeOpts.SortBy) {
 				return fmt.Errorf("--sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
 			}
-			return view.Render(nodeOpts, flags, view.NODE)
+			return view.Render(nodeOpts, flags, view.NODE, interval)
 		},
 	}
 )
@@ -57,6 +57,7 @@ Keyboard Shortcuts:
 func init() {
 	nodeCmd.Flags().StringVarP(&nodeOpts.Selector, "selector", "l", nodeOpts.Selector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
 	nodeCmd.Flags().StringVar(&nodeOpts.SortBy, "sort-by", nodeOpts.Selector, "If non-empty, sort pods list using specified field. The field can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'.")
+	nodeCmd.Flags().IntVar(&interval, "interval", 5, "The interval in seconds between getting metrics")
 	flags.AddFlags(nodeCmd.Flags())
 	rootCmd.AddCommand(nodeCmd)
 }

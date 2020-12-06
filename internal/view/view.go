@@ -41,7 +41,7 @@ const (
 var columns = []string{"NAME", "CPU(cores)", "CPU%", "MEMORY(bytes)", "MEMORY%"}
 
 // Render gets the resource metrics and initializes the termui widgets
-func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource string) error {
+func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource string, interval int) error {
 	var m []metrics.MetricsValues
 	var err error
 	var sortBy string
@@ -130,7 +130,8 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	ui.Render(grid)
 
 	// start a new ticker
-	ticker := time.NewTicker(time.Second)
+	duration, _ := time.ParseDuration(fmt.Sprintf("%ds", interval))
+	ticker := time.NewTicker(duration)
 	defer ticker.Stop()
 	quit := make(chan struct{})
 
