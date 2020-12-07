@@ -38,7 +38,10 @@ const (
 	SortByMemoryPercent = "memory-percent"
 )
 
-var columns = []string{"NAME", "CPU(cores)", "CPU%", "MEMORY(bytes)", "MEMORY%"}
+var (
+	columns      = []string{"NAME", "CPU(cores)", "CPU%", "MEMORY(bytes)", "MEMORY%"}
+	defaultStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
+)
 
 // Render gets the resource metrics and initializes the termui widgets
 func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource string, interval int) error {
@@ -72,9 +75,9 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	for i := 0; i < 5; i++ {
 		lists[i] = uiWidgets.NewList()
 		lists[i].Title = columns[i]
-		lists[i].TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
+		lists[i].TitleStyle = defaultStyle
+		lists[i].SelectedRowStyle = defaultStyle
 		lists[i].TextStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear}
-		lists[i].SelectedRowStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
 		lists[i].Border = false
 	}
 
@@ -82,22 +85,26 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	cpuPlot := widgets.NewKubePlot()
 	cpuPlot.Border = false
 	cpuPlot.AxisMetric = "%"
+	cpuPlot.NameMapping = map[string]int{}
 	memPlot := widgets.NewKubePlot()
 	memPlot.Border = false
 	memPlot.AxisMetric = "%"
+	memPlot.NameMapping = map[string]int{}
 	for i := 0; i < len(m); i++ {
 		cpuPlot.Data = append(cpuPlot.Data, []float64{0})
 		memPlot.Data = append(memPlot.Data, []float64{0})
 		cpuPlot.LineColors = append(cpuPlot.LineColors, ui.Color(i))
 		memPlot.LineColors = append(memPlot.LineColors, ui.Color(i))
+		cpuPlot.NameMapping[m[i].Name] = i
+		memPlot.NameMapping[m[i].Name] = i
 	}
 
 	// custom gauge list widgets
 	cpuGaugeList, memGaugeList := widgets.NewGaugeList(), widgets.NewGaugeList()
 	cpuGaugeList.Title = "CPU"
 	memGaugeList.Title = "Memory"
-	cpuGaugeList.TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
-	memGaugeList.TitleStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
+	cpuGaugeList.TitleStyle = defaultStyle
+	memGaugeList.TitleStyle = defaultStyle
 
 	// tab pane that holds the cpu/mem plots
 	tabplot := widgets.NewTabPlot([]string{"CPU Percent", "Mem Percent"}, []*widgets.KubePlot{cpuPlot, memPlot})
@@ -225,7 +232,7 @@ func fillWidgetData(metrics []metrics.MetricsValues, resourceLists []*uiWidgets.
 			return metrics[i].MemPercent > metrics[j].MemPercent
 		})
 	}
-	for i, v := range metrics {
+	for _, v := range metrics {
 		cpuItem := widgets.NewGaugeListItem(v.CPUPercent, v.Name)
 		memItem := widgets.NewGaugeListItem(v.MemPercent, v.Name)
 		cpuGaugeList.Rows = append(cpuGaugeList.Rows, cpuItem)
@@ -235,7 +242,9 @@ func fillWidgetData(metrics []metrics.MetricsValues, resourceLists []*uiWidgets.
 		resourceLists[2].Rows = append(resourceLists[2].Rows, fmt.Sprintf(" %.2f%%", v.CPUPercent))
 		resourceLists[3].Rows = append(resourceLists[3].Rows, fmt.Sprintf(" %vMi", v.MemCores/(1024*1024)))
 		resourceLists[4].Rows = append(resourceLists[4].Rows, fmt.Sprintf(" %.2f%%", v.MemPercent))
-		cpuPlot.Data[i] = append(cpuPlot.Data[i], float64(v.CPUPercent))
-		memPlot.Data[i] = append(memPlot.Data[i], float64(v.MemPercent))
+		cpuIdx := cpuPlot.NameMapping[v.Name]
+		memIdx := memPlot.NameMapping[v.Name]
+		cpuPlot.Data[cpuIdx] = append(cpuPlot.Data[cpuIdx], float64(v.CPUPercent))
+		memPlot.Data[memIdx] = append(memPlot.Data[memIdx], float64(v.MemPercent))
 	}
 }

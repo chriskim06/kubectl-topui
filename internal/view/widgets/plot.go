@@ -32,6 +32,7 @@ type KubePlot struct {
 	Block
 
 	Data            [][]float64
+	NameMapping     map[string]int
 	MaxVal          float64
 	LineColors      []Color
 	HorizontalScale int
