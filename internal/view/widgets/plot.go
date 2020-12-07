@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	yAxisLabelsWidth = 4
+	yAxisLabelsWidth = 6
 	yAxisLabelsGap   = 1
 )
 
