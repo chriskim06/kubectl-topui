@@ -55,9 +55,9 @@ Keyboard Shortcuts:
 )
 
 func init() {
-	nodeCmd.Flags().StringVarP(&nodeOpts.Selector, "selector", "l", nodeOpts.Selector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
-	nodeCmd.Flags().StringVar(&nodeOpts.SortBy, "sort-by", nodeOpts.Selector, "If non-empty, sort pods list using specified field. The field can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'.")
-	nodeCmd.Flags().IntVar(&interval, "interval", 5, "The interval in seconds between getting metrics")
+	nodeCmd.Flags().StringVarP(&nodeOpts.Selector, "selector", "l", nodeOpts.Selector, selectorHelpStr)
+	nodeCmd.Flags().StringVar(&nodeOpts.SortBy, "sort-by", nodeOpts.Selector, sortHelpStr)
+	nodeCmd.Flags().IntVar(&interval, "interval", 5, intervalHelpStr)
 	flags.AddFlags(nodeCmd.Flags())
 	rootCmd.AddCommand(nodeCmd)
 }

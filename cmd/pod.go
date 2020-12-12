@@ -59,9 +59,9 @@ Keyboard Shortcuts:
 )
 
 func init() {
-	podCmd.Flags().StringVarP(&podOpts.Selector, "selector", "l", podOpts.Selector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
-	podCmd.Flags().StringVar(&podOpts.SortBy, "sort-by", podOpts.Selector, "If non-empty, sort pods list using specified field. The field can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'.")
-	podCmd.Flags().IntVar(&interval, "interval", 5, "The interval in seconds between getting metrics")
+	podCmd.Flags().StringVarP(&podOpts.Selector, "selector", "l", podOpts.Selector, selectorHelpStr)
+	podCmd.Flags().StringVar(&podOpts.SortBy, "sort-by", podOpts.Selector, sortHelpStr)
+	podCmd.Flags().IntVar(&interval, "interval", 5, intervalHelpStr)
 	flags.AddFlags(podCmd.Flags())
 	rootCmd.AddCommand(podCmd)
 }

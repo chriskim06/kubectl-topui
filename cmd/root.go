@@ -23,6 +23,12 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
+const (
+	selectorHelpStr = "Selector (label query) to filter on, supports '=', '==', and '!=' (e.g. -l key1=value1,key2=value2)."
+	sortHelpStr     = "If non-empty, sort list using specified field. The field can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'."
+	intervalHelpStr = "The interval in seconds between getting metrics (defaults to 5)."
+)
+
 var (
 	flags    = genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
 	interval = 5
