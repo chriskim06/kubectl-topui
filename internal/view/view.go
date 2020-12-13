@@ -81,12 +81,8 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	// cpu and mem plots
 	cpuPlot := widgets.NewKubePlot()
 	cpuPlot.Border = false
-	cpuPlot.AxisMetric = "%"
-	cpuPlot.NameMapping = map[string]int{}
 	memPlot := widgets.NewKubePlot()
 	memPlot.Border = false
-	memPlot.AxisMetric = "%"
-	memPlot.NameMapping = map[string]int{}
 	for i := 0; i < len(m); i++ {
 		cpuPlot.Data = append(cpuPlot.Data, []float64{0})
 		memPlot.Data = append(memPlot.Data, []float64{0})
@@ -138,7 +134,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	quit := make(chan struct{})
 
 	// create a goroutine that redraws the grid at each tick
-	go func(flags *genericclioptions.ConfigFlags, resource string, cpuGaugeList, memGaugeList *widgets.GaugeList, rl *widgets.ResourceList, cpuPlot, memPlot *widgets.KubePlot) {
+	go func(cpuGaugeList, memGaugeList *widgets.GaugeList, rl *widgets.ResourceList, cpuPlot, memPlot *widgets.KubePlot) {
 		for {
 			select {
 			case <-ticker.C:
@@ -162,7 +158,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 				return
 			}
 		}
-	}(flags, resource, cpuGaugeList, memGaugeList, rl, cpuPlot, memPlot)
+	}(cpuGaugeList, memGaugeList, rl, cpuPlot, memPlot)
 
 	uiEvents := ui.PollEvents()
 	for {
@@ -175,27 +171,22 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 			rl.ScrollDown()
 			cpuGaugeList.ScrollDown()
 			memGaugeList.ScrollDown()
-			ui.Render(grid)
 		case "k", "<Up>":
 			rl.ScrollUp()
 			cpuGaugeList.ScrollUp()
 			memGaugeList.ScrollUp()
-			ui.Render(grid)
 		case "<Tab>":
 			tabplot.FocusNext()
-			ui.Render(grid)
 		case "h", "<Left>":
 			tabplot.FocusLeft()
-			ui.Render(grid)
 		case "l", "<Right>":
 			tabplot.FocusRight()
-			ui.Render(grid)
 		case "<Resize>":
 			payload := e.Payload.(ui.Resize)
 			grid.SetRect(0, 0, payload.Width, payload.Height)
 			ui.Clear()
-			ui.Render(grid)
 		}
+		ui.Render(grid)
 	}
 }
 

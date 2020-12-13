@@ -45,7 +45,9 @@ func NewKubePlot() *KubePlot {
 		Block:           *NewBlock(),
 		LineColors:      []Color{},
 		Data:            [][]float64{},
+		NameMapping:     map[string]int{},
 		HorizontalScale: 1,
+		AxisMetric:      "%",
 	}
 }
 
