@@ -21,12 +21,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/chriskim06/kubectl-ptop/internal/metrics"
-	"github.com/chriskim06/kubectl-ptop/internal/view/widgets"
 	ui "github.com/gizak/termui/v3"
-	uiWidgets "github.com/gizak/termui/v3/widgets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
+
+	"github.com/chriskim06/kubectl-ptop/internal/metrics"
+	"github.com/chriskim06/kubectl-ptop/internal/view/widgets"
 )
 
 const (
@@ -70,16 +70,13 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	}
 	defer ui.Close()
 
-	// create widgets
-	lists := make([]*uiWidgets.List, 5)
-	for i := 0; i < 5; i++ {
-		lists[i] = uiWidgets.NewList()
-		lists[i].Title = columns[i]
-		lists[i].TitleStyle = defaultStyle
-		lists[i].SelectedRowStyle = defaultStyle
-		lists[i].TextStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear}
-		lists[i].Border = false
-	}
+	// resource list
+	rl := widgets.NewResourceList()
+	rl.Headers = columns
+	rl.TitleStyle = defaultStyle
+	rl.SelectedRowStyle = defaultStyle
+	rl.Border = false
+	colors := map[string]ui.Color{}
 
 	// cpu and mem plots
 	cpuPlot := widgets.NewKubePlot()
@@ -97,9 +94,11 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 		memPlot.LineColors = append(memPlot.LineColors, ui.Color(i))
 		cpuPlot.NameMapping[m[i].Name] = i
 		memPlot.NameMapping[m[i].Name] = i
+		colors[m[i].Name] = ui.Color(i)
 	}
+	rl.Colors = colors
 
-	// custom gauge list widgets
+	// gauge list widgets
 	cpuGaugeList, memGaugeList := widgets.NewGaugeList(), widgets.NewGaugeList()
 	cpuGaugeList.Title = "CPU"
 	memGaugeList.Title = "Memory"
@@ -110,7 +109,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	tabplot := widgets.NewTabPlot([]string{"CPU Percent", "Mem Percent"}, []*widgets.KubePlot{cpuPlot, memPlot})
 
 	// populate widgets initially
-	fillWidgetData(m, lists, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
+	fillWidgetData(m, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
 
 	// use grid to keep relative height and width of terminal
 	grid := ui.NewGrid()
@@ -124,11 +123,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 		),
 		ui.NewRow(
 			2.0/5,
-			ui.NewCol(1.5/10, lists[0]),
-			ui.NewCol(0.75/10, lists[1]),
-			ui.NewCol(0.75/10, lists[2]),
-			ui.NewCol(0.75/10, lists[3]),
-			ui.NewCol(1.25/10, lists[4]),
+			ui.NewCol(5.0/10, rl),
 			ui.NewCol(5.0/10, tabplot),
 		),
 	)
@@ -143,7 +138,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	quit := make(chan struct{})
 
 	// create a goroutine that redraws the grid at each tick
-	go func(flags *genericclioptions.ConfigFlags, resource string, cpuGaugeList, memGaugeList *widgets.GaugeList, lists []*uiWidgets.List, cpuPlot, memPlot *widgets.KubePlot) {
+	go func(flags *genericclioptions.ConfigFlags, resource string, cpuGaugeList, memGaugeList *widgets.GaugeList, rl *widgets.ResourceList, cpuPlot, memPlot *widgets.KubePlot) {
 		for {
 			select {
 			case <-ticker.C:
@@ -161,13 +156,13 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 					log.Println(err)
 					return
 				}
-				fillWidgetData(values, lists, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
+				fillWidgetData(values, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
 				ui.Render(grid)
 			case <-quit:
 				return
 			}
 		}
-	}(flags, resource, cpuGaugeList, memGaugeList, lists, cpuPlot, memPlot)
+	}(flags, resource, cpuGaugeList, memGaugeList, rl, cpuPlot, memPlot)
 
 	uiEvents := ui.PollEvents()
 	for {
@@ -177,16 +172,12 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 			close(quit)
 			return nil
 		case "j", "<Down>":
-			for i := 0; i < 5; i++ {
-				lists[i].ScrollDown()
-			}
+			rl.ScrollDown()
 			cpuGaugeList.ScrollDown()
 			memGaugeList.ScrollDown()
 			ui.Render(grid)
 		case "k", "<Up>":
-			for i := 0; i < 5; i++ {
-				lists[i].ScrollUp()
-			}
+			rl.ScrollUp()
 			cpuGaugeList.ScrollUp()
 			memGaugeList.ScrollUp()
 			ui.Render(grid)
@@ -208,12 +199,10 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	}
 }
 
-func fillWidgetData(metrics []metrics.MetricsValues, resourceLists []*uiWidgets.List, cpuGaugeList, memGaugeList *widgets.GaugeList, cpuPlot, memPlot *widgets.KubePlot, sortBy string) {
+func fillWidgetData(metrics []metrics.MetricsValues, resourceList *widgets.ResourceList, cpuGaugeList, memGaugeList *widgets.GaugeList, cpuPlot, memPlot *widgets.KubePlot, sortBy string) {
+	resourceList.Metrics = metrics
 	cpuGaugeList.Rows = nil
 	memGaugeList.Rows = nil
-	for i := 0; i < 5; i++ {
-		resourceLists[i].Rows = nil
-	}
 	switch sortBy {
 	case SortByCpu:
 		sort.Slice(metrics, func(i, j int) bool {
@@ -237,11 +226,6 @@ func fillWidgetData(metrics []metrics.MetricsValues, resourceLists []*uiWidgets.
 		memItem := widgets.NewGaugeListItem(v.MemPercent, v.Name)
 		cpuGaugeList.Rows = append(cpuGaugeList.Rows, cpuItem)
 		memGaugeList.Rows = append(memGaugeList.Rows, memItem)
-		resourceLists[0].Rows = append(resourceLists[0].Rows, " "+v.Name)
-		resourceLists[1].Rows = append(resourceLists[1].Rows, fmt.Sprintf(" %vm", v.CPUCores))
-		resourceLists[2].Rows = append(resourceLists[2].Rows, fmt.Sprintf(" %.2f%%", v.CPUPercent))
-		resourceLists[3].Rows = append(resourceLists[3].Rows, fmt.Sprintf(" %vMi", v.MemCores/(1024*1024)))
-		resourceLists[4].Rows = append(resourceLists[4].Rows, fmt.Sprintf(" %.2f%%", v.MemPercent))
 		cpuIdx := cpuPlot.NameMapping[v.Name]
 		memIdx := memPlot.NameMapping[v.Name]
 		cpuPlot.Data[cpuIdx] = append(cpuPlot.Data[cpuIdx], float64(v.CPUPercent))
