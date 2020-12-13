@@ -38,17 +38,10 @@ var (
 		Use:     "pod",
 		Aliases: []string{"pods"},
 		Short:   "Show pod metrics",
-		Long: `Show various widgets for pod metrics.
+		Long: addKeyboardShortcutsToDescription(`Show various widgets for pod metrics.
 
 CPU and memory percentages are calculated by getting the sum of the container
-limits/requests for a given pod.
-
-Keyboard Shortcuts:
-  - q: quit
-  - j: scroll down
-  - k: scroll up
-  - h: move to left graph panel
-  - l: move to right graph panel`,
+limits/requests for a given pod.`),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 			if !isValidSortKey(podOpts.SortBy) {

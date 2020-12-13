@@ -25,30 +25,17 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-const (
-	selectorHelpStr = "Selector (label query) to filter on, supports '=', '==', and '!=' (e.g. -l key1=value1,key2=value2)."
-	sortHelpStr     = "If non-empty, sort list using specified field. The field can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'."
-	intervalHelpStr = "The interval in seconds between getting metrics (defaults to 5)."
-)
-
 var (
 	flags    = genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
 	interval = 5
 	rootCmd  = &cobra.Command{
 		Use:   "ptop",
 		Short: "Prettier kubectl top output",
-		Long: `Render kubectl top output with fancier widgets!
+		Long: addKeyboardShortcutsToDescription(`Render kubectl top output with fancier widgets!
 
 This shows separate lists of gauges for the CPU and memory. It also has a panel
 that displays the CPU and memory percentage graphs for the lifespan of the
-command invocation. The standard top output is also displayed.
-
-Keyboard Shortcuts:
-  - q: quit
-  - j: scroll down
-  - k: scroll up
-  - h: move to left graph panel
-  - l: move to right graph panel`,
+command invocation. The standard top output is also displayed.`),
 		Args: cobra.NoArgs,
 	}
 )

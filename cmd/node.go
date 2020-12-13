@@ -38,14 +38,7 @@ var (
 		Use:     "node",
 		Aliases: []string{"nodes"},
 		Short:   "Show node metrics",
-		Long: `Show various widgets for node metrics.
-
-Keyboard Shortcuts:
-  - q: quit
-  - j: scroll down
-  - k: scroll up
-  - h: move to left graph panel
-  - l: move to right graph panel`,
+		Long:    addKeyboardShortcutsToDescription("Show various widgets for node metrics."),
 		RunE: func(_ *cobra.Command, args []string) error {
 			if !isValidSortKey(nodeOpts.SortBy) {
 				return fmt.Errorf("--sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
