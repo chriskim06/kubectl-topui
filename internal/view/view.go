@@ -41,6 +41,7 @@ const (
 var (
 	columns      = []string{"NAME", "CPU(cores)", "CPU%", "MEMORY(bytes)", "MEMORY%"}
 	defaultStyle = ui.Style{Fg: ui.ColorClear, Bg: ui.ColorClear, Modifier: ui.ModifierBold}
+	validColors  = []int{}
 )
 
 // Render gets the resource metrics and initializes the termui widgets
@@ -84,13 +85,14 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	memPlot := widgets.NewKubePlot()
 	memPlot.Border = false
 	for i := 0; i < len(m); i++ {
+		color := ui.Color(validColors[i%len(validColors)])
 		cpuPlot.Data = append(cpuPlot.Data, []float64{0})
 		memPlot.Data = append(memPlot.Data, []float64{0})
-		cpuPlot.LineColors = append(cpuPlot.LineColors, ui.Color(i))
-		memPlot.LineColors = append(memPlot.LineColors, ui.Color(i))
+		cpuPlot.LineColors = append(cpuPlot.LineColors, color)
+		memPlot.LineColors = append(memPlot.LineColors, color)
 		cpuPlot.NameMapping[m[i].Name] = i
 		memPlot.NameMapping[m[i].Name] = i
-		colors[m[i].Name] = ui.Color(i)
+		colors[m[i].Name] = color
 	}
 	rl.Colors = colors
 
@@ -221,5 +223,15 @@ func fillWidgetData(metrics []metrics.MetricsValues, resourceList *widgets.Resou
 		memIdx := memPlot.NameMapping[v.Name]
 		cpuPlot.Data[cpuIdx] = append(cpuPlot.Data[cpuIdx], float64(v.CPUPercent))
 		memPlot.Data[memIdx] = append(memPlot.Data[memIdx], float64(v.MemPercent))
+	}
+}
+
+func init() {
+	// exclude white/black colors from the graph to hopefully provide better
+	// contrast on a variety of terminal backgrounds
+	for i := 1; i < 231; i++ {
+		if i != 7 && i != 15 && i != 16 {
+			validColors = append(validColors, i)
+		}
 	}
 }
