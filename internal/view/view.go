@@ -29,6 +29,15 @@ import (
 	"github.com/chriskim06/kubectl-ptop/internal/view/widgets"
 )
 
+type scrollDirection int
+
+const (
+	UP     scrollDirection = -1
+	DOWN   scrollDirection = 1
+	TOP    scrollDirection = 0
+	BOTTOM scrollDirection = 2
+)
+
 const (
 	POD                 = "pod"
 	NODE                = "node"
@@ -162,6 +171,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 		}
 	}(cpuGaugeList, memGaugeList, rl, cpuPlot, memPlot)
 
+	previousKey := ""
 	uiEvents := ui.PollEvents()
 	for {
 		e := <-uiEvents
@@ -170,13 +180,17 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 			close(quit)
 			return nil
 		case "j", "<Down>":
-			rl.ScrollDown()
-			cpuGaugeList.ScrollDown()
-			memGaugeList.ScrollDown()
+			scroll(DOWN, rl, cpuGaugeList, memGaugeList)
 		case "k", "<Up>":
-			rl.ScrollUp()
-			cpuGaugeList.ScrollUp()
-			memGaugeList.ScrollUp()
+			scroll(UP, rl, cpuGaugeList, memGaugeList)
+		case "g":
+			if previousKey == "g" {
+				scroll(TOP, rl, cpuGaugeList, memGaugeList)
+			}
+		case "<Home>":
+			scroll(TOP, rl, cpuGaugeList, memGaugeList)
+		case "G", "<End>":
+			scroll(BOTTOM, rl, cpuGaugeList, memGaugeList)
 		case "<Tab>":
 			tabplot.FocusNext()
 		case "h", "<Left>":
@@ -188,7 +202,35 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 			grid.SetRect(0, 0, payload.Width, payload.Height)
 			ui.Clear()
 		}
+
+		if previousKey == "g" {
+			previousKey = ""
+		} else {
+			previousKey = e.ID
+		}
+
 		ui.Render(grid)
+	}
+}
+
+func scroll(dir scrollDirection, l *widgets.ResourceList, c, m *widgets.GaugeList) {
+	switch dir {
+	case UP:
+		l.ScrollUp()
+		c.ScrollUp()
+		m.ScrollUp()
+	case DOWN:
+		l.ScrollDown()
+		c.ScrollDown()
+		m.ScrollDown()
+	case TOP:
+		l.ScrollTop()
+		c.ScrollTop()
+		m.ScrollTop()
+	case BOTTOM:
+		l.ScrollBottom()
+		c.ScrollBottom()
+		m.ScrollBottom()
 	}
 }
 

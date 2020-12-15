@@ -169,3 +169,13 @@ func (self *GaugeList) ScrollUp() {
 func (self *GaugeList) ScrollDown() {
 	self.ScrollAmount(1)
 }
+
+// ScrollTop scrolls to the top of the list
+func (self *GaugeList) ScrollTop() {
+	self.SelectedRow = 0
+}
+
+// ScrollBottom scrolls to the bottom of the list
+func (self *GaugeList) ScrollBottom() {
+	self.SelectedRow = len(self.Rows) - 1
+}

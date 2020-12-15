@@ -123,6 +123,9 @@ func (self *ResourceList) Draw(buf *Buffer) {
 	}
 }
 
+// ScrollAmount scrolls by amount given. If amount is < 0, then scroll up.
+// There is no need to set self.topRow, as this will be set automatically when drawn,
+// since if the selected item is off screen then the topRow variable will change accordingly.
 func (self *ResourceList) ScrollAmount(amount int) {
 	if len(self.Metrics)-int(self.SelectedRow) <= amount {
 		self.SelectedRow = len(self.Metrics) - 1
@@ -133,12 +136,24 @@ func (self *ResourceList) ScrollAmount(amount int) {
 	}
 }
 
+// ScrollUp scrolls up by 1
 func (self *ResourceList) ScrollUp() {
 	self.ScrollAmount(-1)
 }
 
+// ScrollDown scrolls down by 1
 func (self *ResourceList) ScrollDown() {
 	self.ScrollAmount(1)
+}
+
+// ScrollTop scrolls to the top of the list
+func (self *ResourceList) ScrollTop() {
+	self.SelectedRow = 0
+}
+
+// ScrollBottom scrolls to the bottom of the list
+func (self *ResourceList) ScrollBottom() {
+	self.SelectedRow = len(self.Metrics) - 1
 }
 
 func getTabbedStringList(headers []string, metricsValues []metrics.MetricsValues, colors map[string]Color) []tabbedLine {

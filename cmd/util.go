@@ -30,6 +30,8 @@ Keyboard Shortcuts:
   - q: quit
   - j: scroll down
   - k: scroll up
+  - gg: scroll top
+  - G: scroll bottom
   - h: move to left graph panel
   - l: move to right graph panel`
 )
