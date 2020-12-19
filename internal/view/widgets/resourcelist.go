@@ -168,7 +168,7 @@ func getTabbedStringList(headers []string, metricsValues []metrics.MetricsValues
 
 	// add the metrics themselves
 	for i, m := range metricsValues {
-		fmt.Fprintf(w, "%s\t%d\t%.2f\t%d\t%.2f\t ", m.Name, m.CPUCores, m.CPUPercent, m.MemCores, m.MemPercent)
+		fmt.Fprintf(w, "%s\t%dm\t%.2f\t%dMi\t%.2f\t ", m.Name, m.CPUCores, m.CPUPercent, m.MemCores, m.MemPercent)
 		if i != len(metricsValues)-1 {
 			fmt.Fprint(w, "\n")
 		}

@@ -116,7 +116,7 @@ func GetPodMetrics(o *top.TopPodOptions, flags *genericclioptions.ConfigFlags) (
 			CPUPercent: cpuFraction,
 			MemPercent: memFraction,
 			CPUCores:   int(cpuQuantity.MilliValue()),
-			MemCores:   int(memQuantity.Value()),
+			MemCores:   int(memQuantity.Value() / (1024 * 1024)),
 		})
 	}
 
