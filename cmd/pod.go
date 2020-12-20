@@ -16,9 +16,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
@@ -45,7 +45,7 @@ limits/requests for a given pod.`),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 			if !isValidSortKey(podOpts.SortBy) {
-				return fmt.Errorf("--sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
+				return errors.New("Error: --sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
 			}
 			return view.Render(podOpts, flags, view.POD, interval)
 		},

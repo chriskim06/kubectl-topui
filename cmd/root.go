@@ -36,7 +36,9 @@ var (
 This shows separate lists of gauges for the CPU and memory. It also has a panel
 that displays the CPU and memory percentage graphs for the lifespan of the
 command invocation. The standard top output is also displayed.`),
-		Args: cobra.NoArgs,
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args:          cobra.NoArgs,
 	}
 )
 

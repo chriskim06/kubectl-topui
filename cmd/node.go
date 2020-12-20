@@ -16,9 +16,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
@@ -41,7 +41,7 @@ var (
 		Long:    addKeyboardShortcutsToDescription("Show various widgets for node metrics."),
 		RunE: func(_ *cobra.Command, args []string) error {
 			if !isValidSortKey(nodeOpts.SortBy) {
-				return fmt.Errorf("--sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
+				return errors.New("Error: --sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
 			}
 			return view.Render(nodeOpts, flags, view.NODE, interval)
 		},

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	ui "github.com/gizak/termui/v3"
+	"github.com/pkg/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 
@@ -68,15 +69,15 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 		sortBy = o.SortBy
 		m, err = metrics.GetNodeMetrics(o, flags)
 	default:
-		return fmt.Errorf("unrecognized resource")
+		return errors.New("unrecognized resource")
 	}
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting metrics")
 	}
 
 	// initialize termui
 	if err := ui.Init(); err != nil {
-		return err
+		return errors.Wrap(err, "error initializing termui")
 	}
 	defer ui.Close()
 
