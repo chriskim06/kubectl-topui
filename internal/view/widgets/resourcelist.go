@@ -58,7 +58,7 @@ func NewResourceList() *ResourceList {
 
 // Draw renders the resource list
 func (self *ResourceList) Draw(buf *Buffer) {
-	lines := getTabbedStringList(self.Headers, self.Metrics, self.Colors)
+	lines := getTabbedStringList(self.Inner.Dx(), self.Headers, self.Metrics, self.Colors)
 	self.Title = lines[0].content
 	lines = lines[1:]
 
@@ -156,7 +156,7 @@ func (self *ResourceList) ScrollBottom() {
 	self.SelectedRow = len(self.Metrics) - 1
 }
 
-func getTabbedStringList(headers []string, metricsValues []metrics.MetricsValues, colors map[string]Color) []tabbedLine {
+func getTabbedStringList(width int, headers []string, metricsValues []metrics.MetricsValues, colors map[string]Color) []tabbedLine {
 	b := new(bytes.Buffer)
 	w := tabwriter.NewWriter(b, 0, 0, 1, ' ', 0)
 
@@ -167,8 +167,13 @@ func getTabbedStringList(headers []string, metricsValues []metrics.MetricsValues
 	fmt.Fprint(w, " \n")
 
 	// add the metrics themselves
+	half := width / 2
 	for i, m := range metricsValues {
-		fmt.Fprintf(w, "%s\t%dm\t%.2f\t%dMi\t%.2f\t ", m.Name, m.CPUCores, m.CPUPercent, m.MemCores, m.MemPercent)
+		name := m.Name
+		if len(name) > half {
+			name = fmt.Sprintf("%s%c", name[0:half-3], ELLIPSES)
+		}
+		fmt.Fprintf(w, "%s\t%dm\t%.2f\t%dMi\t%.2f\t ", name, m.CPUCores, m.CPUPercent, m.MemCores, m.MemPercent)
 		if i != len(metricsValues)-1 {
 			fmt.Fprint(w, "\n")
 		}
