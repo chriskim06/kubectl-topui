@@ -16,7 +16,7 @@ limitations under the License.
 package view
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"sort"
 	"time"
@@ -131,8 +131,8 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 		),
 		ui.NewRow(
 			2.0/5,
-			ui.NewCol(5.0/10, rl),
-			ui.NewCol(5.0/10, tabplot),
+			ui.NewCol(1.0/2, rl),
+			ui.NewCol(1.0/2, tabplot),
 		),
 	)
 
@@ -140,17 +140,20 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	ui.Render(grid)
 
 	// start a new ticker
-	duration, _ := time.ParseDuration(fmt.Sprintf("%ds", interval))
-	ticker := time.NewTicker(duration)
-	defer ticker.Stop()
-	quit := make(chan struct{})
+	duration := time.Duration(interval) * time.Second
+	metricsTicker := time.NewTicker(duration)
+	uiTicker := time.NewTicker(duration)
+	defer metricsTicker.Stop()
+	defer uiTicker.Stop()
 
-	// create a goroutine that redraws the grid at each tick
-	go func(cpuGaugeList, memGaugeList *widgets.GaugeList, rl *widgets.ResourceList, cpuPlot, memPlot *widgets.KubePlot) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// put results into separate channel
+	results := make(chan []metrics.MetricsValues)
+	go func() {
 		for {
 			select {
-			case <-ticker.C:
-				// update the widgets and render the grid with new node metrics
+			case <-metricsTicker.C:
 				var values []metrics.MetricsValues
 				var err error
 				if resource == POD {
@@ -164,9 +167,26 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 					log.Println(err)
 					return
 				}
-				fillWidgetData(values, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
+				results <- values
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	// create a goroutine that redraws the grid at each tick
+	go func(cpuGaugeList, memGaugeList *widgets.GaugeList, rl *widgets.ResourceList, cpuPlot, memPlot *widgets.KubePlot) {
+		for {
+			select {
+			case <-uiTicker.C:
+				// update the widgets and render the grid with new metrics
+				select {
+				case values := <-results:
+					fillWidgetData(values, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
+				default:
+				}
 				ui.Render(grid)
-			case <-quit:
+			case <-ctx.Done():
 				return
 			}
 		}
@@ -178,7 +198,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 		e := <-uiEvents
 		switch e.ID {
 		case "q", "<C-c>":
-			close(quit)
+			cancel()
 			return nil
 		case "j", "<Down>":
 			scroll(DOWN, rl, cpuGaugeList, memGaugeList)
