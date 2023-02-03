@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,48 +34,63 @@ type KubePlot struct {
 	Data            [][]float64
 	NameMapping     map[string]int
 	MaxVal          float64
-	LineColors      []Color
 	HorizontalScale int
 	AxisMetric      string
+	cursor          int
 }
 
 // NewKubePlot instantiates a new plot
 func NewKubePlot() *KubePlot {
 	return &KubePlot{
 		Block:           *NewBlock(),
-		LineColors:      []Color{},
 		Data:            [][]float64{},
 		NameMapping:     map[string]int{},
 		HorizontalScale: 1,
 		AxisMetric:      "%",
+		cursor:          0,
 	}
+}
+
+func (self *KubePlot) ScrollUp() {
+	self.cursor--
+}
+
+func (self *KubePlot) ScrollDown() {
+	self.cursor++
+}
+
+func (self *KubePlot) ScrollTop() {
+	self.cursor = 0
+}
+
+func (self *KubePlot) ScrollBottom() {
+	self.cursor = len(self.NameMapping)
 }
 
 func (self *KubePlot) renderBraille(buf *Buffer, drawArea image.Rectangle, maxVal float64) {
 	canvas := NewCanvas()
 	canvas.Rectangle = drawArea
 
-	for i, l := range self.Data {
-		line := l
-		if len(line) > 100 {
-			line = line[100:]
-		}
-		previousHeight := int((line[1] / maxVal) * float64(drawArea.Dy()-1))
-		for j, val := range line[1:] {
-			height := int((val / maxVal) * float64(drawArea.Dy()-1))
-			canvas.SetLine(
-				image.Pt(
-					(drawArea.Min.X+(j*self.HorizontalScale))*2,
-					(drawArea.Max.Y-previousHeight-1)*4,
-				),
-				image.Pt(
-					(drawArea.Min.X+((j+1)*self.HorizontalScale))*2,
-					(drawArea.Max.Y-height-1)*4,
-				),
-				SelectColor(self.LineColors, i),
-			)
-			previousHeight = height
-		}
+	i := self.cursor
+	line := self.Data[i]
+	if len(line) > 100 {
+		line = line[100:]
+	}
+	previousHeight := int((line[1] / maxVal) * float64(drawArea.Dy()-1))
+	for j, val := range line[1:] {
+		height := int((val / maxVal) * float64(drawArea.Dy()-1))
+		canvas.SetLine(
+			image.Pt(
+				(drawArea.Min.X+(j*self.HorizontalScale))*2,
+				(drawArea.Max.Y-previousHeight-1)*4,
+			),
+			image.Pt(
+				(drawArea.Min.X+((j+1)*self.HorizontalScale))*2,
+				(drawArea.Max.Y-height-1)*4,
+			),
+			ColorCyan,
+		)
+		previousHeight = height
 	}
 
 	canvas.Draw(buf)

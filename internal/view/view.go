@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -86,8 +86,6 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	rl.Headers = columns
 	rl.TitleStyle = defaultStyle
 	rl.SelectedRowStyle = defaultStyle
-	rl.Border = false
-	colors := map[string]ui.Color{}
 
 	// cpu and mem plots
 	cpuPlot := widgets.NewKubePlot()
@@ -95,16 +93,11 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	memPlot := widgets.NewKubePlot()
 	memPlot.Border = false
 	for i := 0; i < len(m); i++ {
-		color := ui.Color(validColors[i%len(validColors)])
 		cpuPlot.Data = append(cpuPlot.Data, []float64{0})
 		memPlot.Data = append(memPlot.Data, []float64{0})
-		cpuPlot.LineColors = append(cpuPlot.LineColors, color)
-		memPlot.LineColors = append(memPlot.LineColors, color)
 		cpuPlot.NameMapping[m[i].Name] = i
 		memPlot.NameMapping[m[i].Name] = i
-		colors[m[i].Name] = color
 	}
-	rl.Colors = colors
 
 	// gauge list widgets
 	cpuGaugeList, memGaugeList := widgets.NewGaugeList(), widgets.NewGaugeList()
@@ -116,8 +109,10 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	// tab pane that holds the cpu/mem plots
 	tabplot := widgets.NewTabPlot([]string{"CPU Percent", "Mem Percent"}, []*widgets.KubePlot{cpuPlot, memPlot})
 
+	cursor := 0
+
 	// populate widgets initially
-	fillWidgetData(m, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
+	fillWidgetData(m, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy, cursor)
 
 	// use grid to keep relative height and width of terminal
 	grid := ui.NewGrid()
@@ -175,14 +170,14 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	}()
 
 	// create a goroutine that redraws the grid at each tick
-	go func(cpuGaugeList, memGaugeList *widgets.GaugeList, rl *widgets.ResourceList, cpuPlot, memPlot *widgets.KubePlot) {
+	go func(cpuGaugeList, memGaugeList *widgets.GaugeList, rl *widgets.ResourceList, cpuPlot, memPlot *widgets.KubePlot, cursor int) {
 		for {
 			select {
 			case <-uiTicker.C:
 				// update the widgets and render the grid with new metrics
 				select {
 				case values := <-results:
-					fillWidgetData(values, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy)
+					fillWidgetData(values, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot, sortBy, cursor)
 				default:
 				}
 				ui.Render(grid)
@@ -190,7 +185,7 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 				return
 			}
 		}
-	}(cpuGaugeList, memGaugeList, rl, cpuPlot, memPlot)
+	}(cpuGaugeList, memGaugeList, rl, cpuPlot, memPlot, cursor)
 
 	previousKey := ""
 	uiEvents := ui.PollEvents()
@@ -201,17 +196,22 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 			cancel()
 			return nil
 		case "j", "<Down>":
-			scroll(DOWN, rl, cpuGaugeList, memGaugeList)
+			cursor++
+			scroll(DOWN, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot)
 		case "k", "<Up>":
-			scroll(UP, rl, cpuGaugeList, memGaugeList)
+			cursor--
+			scroll(UP, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot)
 		case "g":
 			if previousKey == "g" {
-				scroll(TOP, rl, cpuGaugeList, memGaugeList)
+				cursor = 0
+				scroll(TOP, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot)
 			}
 		case "<Home>":
-			scroll(TOP, rl, cpuGaugeList, memGaugeList)
+			cursor = 0
+			scroll(TOP, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot)
 		case "G", "<End>":
-			scroll(BOTTOM, rl, cpuGaugeList, memGaugeList)
+			cursor = len(cpuGaugeList.Rows)
+			scroll(BOTTOM, rl, cpuGaugeList, memGaugeList, cpuPlot, memPlot)
 		case "<Tab>":
 			tabplot.FocusNext()
 		case "h", "<Left>":
@@ -234,28 +234,36 @@ func Render(options interface{}, flags *genericclioptions.ConfigFlags, resource 
 	}
 }
 
-func scroll(dir scrollDirection, l *widgets.ResourceList, c, m *widgets.GaugeList) {
+func scroll(dir scrollDirection, l *widgets.ResourceList, c, m *widgets.GaugeList, cpu, mem *widgets.KubePlot) {
 	switch dir {
 	case UP:
 		l.ScrollUp()
 		c.ScrollUp()
 		m.ScrollUp()
+		cpu.ScrollUp()
+		mem.ScrollUp()
 	case DOWN:
 		l.ScrollDown()
 		c.ScrollDown()
 		m.ScrollDown()
+		cpu.ScrollDown()
+		mem.ScrollDown()
 	case TOP:
 		l.ScrollTop()
 		c.ScrollTop()
 		m.ScrollTop()
+		cpu.ScrollTop()
+		mem.ScrollTop()
 	case BOTTOM:
 		l.ScrollBottom()
 		c.ScrollBottom()
 		m.ScrollBottom()
+		cpu.ScrollBottom()
+		mem.ScrollBottom()
 	}
 }
 
-func fillWidgetData(metrics []metrics.MetricsValues, resourceList *widgets.ResourceList, cpuGaugeList, memGaugeList *widgets.GaugeList, cpuPlot, memPlot *widgets.KubePlot, sortBy string) {
+func fillWidgetData(metrics []metrics.MetricsValues, resourceList *widgets.ResourceList, cpuGaugeList, memGaugeList *widgets.GaugeList, cpuPlot, memPlot *widgets.KubePlot, sortBy string, cursor int) {
 	resourceList.Metrics = metrics
 	cpuGaugeList.Rows = nil
 	memGaugeList.Rows = nil

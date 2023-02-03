@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,7 +30,6 @@ import (
 
 type tabbedLine struct {
 	content string
-	color   Color
 }
 
 // ResourceList is a custom widget that displays normal kubectl top output
@@ -40,7 +39,6 @@ type ResourceList struct {
 
 	Headers          []string
 	Metrics          []metrics.MetricsValues
-	Colors           map[string]Color
 	TextStyle        Style
 	SelectedRow      int
 	topRow           int
@@ -58,7 +56,7 @@ func NewResourceList() *ResourceList {
 
 // Draw renders the resource list
 func (self *ResourceList) Draw(buf *Buffer) {
-	lines := getTabbedStringList(self.Inner.Dx(), self.Headers, self.Metrics, self.Colors)
+	lines := getTabbedStringList(self.Inner.Dx(), self.Headers, self.Metrics)
 	self.Title = lines[0].content
 	lines = lines[1:]
 
@@ -76,11 +74,11 @@ func (self *ResourceList) Draw(buf *Buffer) {
 	// draw lines
 	for row := self.topRow; row < len(lines) && point.Y < self.Inner.Max.Y; row++ {
 		// draw the color indicator first
-		indicatorStyle := NewStyle(lines[row].color, ColorClear)
+		indicatorStyle := NewStyle(ColorClear, ColorClear)
 		if row == self.SelectedRow {
 			indicatorStyle.Modifier = ModifierBold
+			buf.SetCell(NewCell('*', indicatorStyle), point)
 		}
-		buf.SetCell(NewCell('*', indicatorStyle), point)
 		point = point.Add(image.Pt(2, 0))
 
 		// draw the content for the line next
@@ -156,7 +154,7 @@ func (self *ResourceList) ScrollBottom() {
 	self.SelectedRow = len(self.Metrics) - 1
 }
 
-func getTabbedStringList(width int, headers []string, metricsValues []metrics.MetricsValues, colors map[string]Color) []tabbedLine {
+func getTabbedStringList(width int, headers []string, metricsValues []metrics.MetricsValues) []tabbedLine {
 	b := new(bytes.Buffer)
 	w := tabwriter.NewWriter(b, 0, 0, 1, ' ', 0)
 
@@ -187,14 +185,12 @@ func getTabbedStringList(width int, headers []string, metricsValues []metrics.Me
 		if i == 0 {
 			tabbedLines = append(tabbedLines, tabbedLine{
 				content: line,
-				color:   -1,
 			})
 			continue
 		}
 
 		tabbedLines = append(tabbedLines, tabbedLine{
 			content: line,
-			color:   colors[metricsValues[i-1].Name],
 		})
 	}
 
