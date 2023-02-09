@@ -18,6 +18,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/chriskim06/kubectl-ptop/internal/ui"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -41,7 +42,8 @@ var (
 			if !isValidSortKey(nodeOpts.SortBy) {
 				return errors.New("Error: --sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
 			}
-			return nil
+			app := ui.New("node", nodeOpts, flags)
+			return app.Run()
 		},
 	}
 )
