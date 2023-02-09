@@ -9,6 +9,7 @@ import (
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
 	"github.com/gdamore/tcell/v2"
 	"github.com/navidys/tvxwidgets"
+	"github.com/rivo/tview"
 )
 
 var headers = map[string]string{
@@ -18,7 +19,7 @@ var headers = map[string]string{
 
 func tabStrings(data []metrics.MetricsValues, resource string) (string, []string) {
 	var b bytes.Buffer
-	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
+	w := tabwriter.NewWriter(&b, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, headers[resource])
 	for _, m := range data {
 		fmt.Fprintln(w, fmtStr(m, resource))
@@ -58,7 +59,9 @@ func fmtStr(m metrics.MetricsValues, resource string) string {
 func NewPlot() *tvxwidgets.Plot {
 	plot := tvxwidgets.NewPlot()
 	plot.SetMarker(tvxwidgets.PlotMarkerBraille)
+	plot.SetTitleAlign(tview.AlignLeft)
 	plot.SetBorder(true)
+	plot.SetBorderPadding(1, 1, 1, 1)
 	plot.SetLineColor([]tcell.Color{
 		tcell.ColorRed,
 		tcell.ColorDarkCyan,

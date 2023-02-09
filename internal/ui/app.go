@@ -169,7 +169,7 @@ func (a *App) updateList() {
 	}
 	a.setCurrent()
 	a.frame = tview.NewFrame(a.items).AddText(header, true, tview.AlignLeft, tcell.ColorWhite|tcell.Color(tcell.AttrBold))
-	a.frame.SetBorder(true)
+	a.frame.SetBorder(true).SetTitle(a.resource).SetTitleAlign(tview.AlignLeft)
 }
 
 func (a *App) updateGraphs() {
