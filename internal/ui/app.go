@@ -29,7 +29,6 @@ type App struct {
 	resource string
 	options  interface{}
 	current  string
-	index    int
 	tick     time.Ticker
 }
 
@@ -39,9 +38,9 @@ func New(resource string, options interface{}, flags *genericclioptions.ConfigFl
 	var d []metrics.MetricsValues
 	if resource == "pod" {
 		d, err = m.GetPodMetrics(options.(*top.TopPodOptions))
-		if err != nil {
-			log.Fatal(err)
-		}
+	}
+	if err != nil {
+		log.Fatal(err)
 	}
 	cpu := tvxwidgets.NewPlot()
 	cpu.SetMarker(tvxwidgets.PlotMarkerBraille)
@@ -57,12 +56,12 @@ func New(resource string, options interface{}, flags *genericclioptions.ConfigFl
 		tcell.ColorRed,
 		tcell.ColorDarkCyan,
 	})
+	items := tview.NewList().ShowSecondaryText(false)
 	app := &App{
 		client:   m,
 		resource: resource,
 		options:  options,
-		data:     d,
-		items:    tview.NewList().ShowSecondaryText(false),
+		items:    items,
 		cpu:      cpu,
 		mem:      mem,
 		cpuData:  map[string][][]float64{},
@@ -70,8 +69,31 @@ func New(resource string, options interface{}, flags *genericclioptions.ConfigFl
 		view:     tview.NewApplication(),
 		tick:     *time.NewTicker(3 * time.Second),
 	}
-	app.updateData(d)
-	app.init()
+	app.update(d)
+	flex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(
+			tview.NewFlex().
+				AddItem(app.cpu, 0, 1, false).
+				AddItem(app.mem, 0, 1, false),
+			0,
+			1,
+			false,
+		).
+		AddItem(app.frame, 0, 3, false)
+
+	app.view.SetRoot(flex, true).SetFocus(flex)
+	app.view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Rune() {
+		case 'q':
+			app.view.Stop()
+		case 'j':
+			app.move(1)
+		case 'k':
+			app.move(-1)
+		}
+		return event
+	})
 	return app
 }
 
@@ -91,9 +113,7 @@ func (a App) Run() error {
 						log.Fatal(err)
 					}
 				}
-				a.updateData(d)
-				a.updateList()
-				a.updateGraphs()
+				a.update(d)
 				a.view.Draw()
 			}
 		}
@@ -103,44 +123,24 @@ func (a App) Run() error {
 	return err
 }
 
-func (a *App) init() {
-	a.updateList()
-	a.updateGraphs()
-	flex := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(
-			tview.NewFlex().
-				AddItem(a.cpu, 0, 1, false).
-				AddItem(a.mem, 0, 1, false),
-			0,
-			1,
-			false,
-		).
-		AddItem(a.frame, 0, 3, false)
-
-	a.view.SetRoot(flex, true).SetFocus(flex)
-	a.view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Rune() {
-		case 'q':
-			a.view.Stop()
-		case 'j':
-			a.move(1)
-		case 'k':
-			a.move(-1)
-		}
-		return event
-	})
-}
-
 func (a *App) move(i int) {
+	x := 0
 	if a.items.GetCurrentItem()+i >= a.items.GetItemCount() {
-		a.items.SetCurrentItem(0)
+		x = 0
 	} else if a.items.GetCurrentItem()+i < 0 {
-		a.items.SetCurrentItem(a.items.GetItemCount() - 1)
+		x = a.items.GetItemCount() - 1
 	} else {
-		a.items.SetCurrentItem(a.items.GetCurrentItem() + i)
+		x = a.items.GetCurrentItem() + i
 	}
-	// need to figure out how to redraw the graphs
+	go func() {
+		a.view.QueueUpdateDraw(func() {
+			a.items.SetCurrentItem(x)
+			line, _ := a.items.GetItemText(a.items.GetCurrentItem())
+			sections := strings.Fields(line)
+			a.current = sections[1]
+			a.updateGraphs()
+		})
+	}()
 }
 
 func (a *App) updateList() {
@@ -187,7 +187,7 @@ func (a *App) updateGraphs() {
 	a.mem.SetTitle(fmt.Sprintf("MEM - %s", a.current))
 }
 
-func (a *App) updateData(m []metrics.MetricsValues) {
+func (a *App) update(m []metrics.MetricsValues) {
 	for _, metric := range m {
 		if a.cpuData[metric.Name] == nil {
 			a.cpuData[metric.Name] = [][]float64{{}, {}}
@@ -213,4 +213,6 @@ func (a *App) updateData(m []metrics.MetricsValues) {
 		a.memData[metric.Name][1] = append(a.memData[metric.Name][1], float64(metric.MemCores))
 	}
 	a.data = m
+	a.updateList()
+	a.updateGraphs()
 }
