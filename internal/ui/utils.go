@@ -13,8 +13,8 @@ import (
 )
 
 var headers = map[string]string{
-	"pod":  "NAMESPACE\tNAME\tREADY\tSTATUS\tCPU\tMEM\tRESTARTS\tAGE",
-	"node": "NAME\tCPU USAGE\tCPU AVAILABLE\tMEM USAGE\tMEM AVAILABLE",
+	"pod":  "NAMESPACE\tNAME\tREADY\tSTATUS\tCPU USAGE\tCPU LIMIT\tCPU %\tMEM USAGE\tMEM LIMIT\tMEM %\tRESTARTS\tAGE",
+	"node": "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
 }
 
 func tabStrings(data []metrics.MetricsValues, resource string) (string, []string) {
@@ -34,24 +34,30 @@ func tabStrings(data []metrics.MetricsValues, resource string) (string, []string
 func fmtStr(m metrics.MetricsValues, resource string) string {
 	if resource == "pod" {
 		return fmt.Sprintf(
-			"%s\t%s\t%s\t%s\t%dm\t%dMi\t%d\t%s",
+			"%s\t%s\t%s\t%s\t%dm\t%dm\t%0.2f%%\t%dMi\t%dm\t%0.2f%%\t%d\t%s",
 			m.Namespace,
 			m.Name,
 			fmt.Sprintf("%d/%d", m.Ready, m.Total),
 			m.Status,
 			m.CPUCores,
+			m.CPULimit,
+			m.CPUPercent,
 			m.MemCores,
+			m.MemLimit,
+			m.MemPercent,
 			m.Restarts,
 			m.Age,
 		)
 	} else {
 		return fmt.Sprintf(
-			"%s\t%dm\t%dm\t%dMi\t%dMi",
+			"%s\t%dm\t%dm\t%0.2f%%\t%dMi\t%dMi\t%0.2f%%",
 			m.Name,
 			m.CPUCores,
 			m.CPULimit,
+			m.CPUPercent,
 			m.MemCores,
 			m.MemLimit,
+			m.MemPercent,
 		)
 	}
 }
