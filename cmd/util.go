@@ -21,22 +21,13 @@ import (
 
 const (
 	selectorHelpStr   = "Selector (label query) to filter on, supports '=', '==', and '!=' (e.g. -l key1=value1,key2=value2)."
-	sortHelpStr       = "If non-empty, sort list using specified field. The field can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'."
 	intervalHelpStr   = "The interval in seconds between getting metrics (defaults to 5)."
 	keyboardShortcuts = `
 Keyboard Shortcuts:
   - q: quit
   - j: scroll down
-  - k: scroll up
-  - gg: scroll top
-  - G: scroll bottom
-  - h: move to left graph panel
-  - l: move to right graph panel`
+  - k: scroll up`
 )
-
-func isValidSortKey(s string) bool {
-	return true
-}
 
 func addKeyboardShortcutsToDescription(usage string) string {
 	return fmt.Sprintf("%s\n%s", usage, keyboardShortcuts)

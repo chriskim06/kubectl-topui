@@ -30,7 +30,7 @@ type App struct {
 	tick     time.Ticker
 }
 
-func New(resource string, options interface{}, flags *genericclioptions.ConfigFlags) *App {
+func New(resource string, interval int, options interface{}, flags *genericclioptions.ConfigFlags) *App {
 	app := &App{
 		client:   metrics.New(flags),
 		resource: resource,
@@ -41,7 +41,7 @@ func New(resource string, options interface{}, flags *genericclioptions.ConfigFl
 		cpuData:  map[string][][]float64{},
 		memData:  map[string][][]float64{},
 		view:     tview.NewApplication(),
-		tick:     *time.NewTicker(3 * time.Second),
+		tick:     *time.NewTicker(time.Duration(interval) * time.Second),
 	}
 	app.update()
 

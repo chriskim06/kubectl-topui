@@ -18,7 +18,6 @@ package cmd
 import (
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
@@ -44,10 +43,7 @@ CPU and memory percentages are calculated by getting the sum of the container
 limits/requests for a given pod.`),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-			if !isValidSortKey(podOpts.SortBy) {
-				return errors.New("Error: --sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
-			}
-			app := ui.New("pod", podOpts, flags)
+			app := ui.New("pod", interval, podOpts, flags)
 			return app.Run()
 		},
 	}
@@ -55,8 +51,7 @@ limits/requests for a given pod.`),
 
 func init() {
 	podCmd.Flags().StringVarP(&podOpts.Selector, "selector", "l", podOpts.Selector, selectorHelpStr)
-	podCmd.Flags().StringVar(&podOpts.SortBy, "sort-by", podOpts.Selector, sortHelpStr)
-	podCmd.Flags().IntVar(&interval, "interval", 5, intervalHelpStr)
+	podCmd.Flags().IntVar(&interval, "interval", 3, intervalHelpStr)
 	flags.AddFlags(podCmd.Flags())
 	rootCmd.AddCommand(podCmd)
 }

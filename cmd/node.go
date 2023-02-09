@@ -19,7 +19,6 @@ import (
 	"os"
 
 	"github.com/chriskim06/kubectl-ptop/internal/ui"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
@@ -39,10 +38,7 @@ var (
 		Short:   "Show node metrics",
 		Long:    addKeyboardShortcutsToDescription("Show various widgets for node metrics."),
 		RunE: func(_ *cobra.Command, args []string) error {
-			if !isValidSortKey(nodeOpts.SortBy) {
-				return errors.New("Error: --sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
-			}
-			app := ui.New("node", nodeOpts, flags)
+			app := ui.New("node", interval, nodeOpts, flags)
 			return app.Run()
 		},
 	}
@@ -50,8 +46,7 @@ var (
 
 func init() {
 	nodeCmd.Flags().StringVarP(&nodeOpts.Selector, "selector", "l", nodeOpts.Selector, selectorHelpStr)
-	nodeCmd.Flags().StringVar(&nodeOpts.SortBy, "sort-by", nodeOpts.Selector, sortHelpStr)
-	nodeCmd.Flags().IntVar(&interval, "interval", 5, intervalHelpStr)
+	nodeCmd.Flags().IntVar(&interval, "interval", 3, intervalHelpStr)
 	flags.AddFlags(nodeCmd.Flags())
 	rootCmd.AddCommand(nodeCmd)
 }
