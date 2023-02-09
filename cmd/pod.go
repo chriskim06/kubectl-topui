@@ -22,6 +22,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 
+	"github.com/chriskim06/kubectl-ptop/internal/metrics"
 	"github.com/chriskim06/kubectl-ptop/internal/ui"
 )
 
@@ -43,7 +44,7 @@ CPU and memory percentages are calculated by getting the sum of the container
 limits/requests for a given pod.`),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-			app := ui.New("pod", interval, podOpts, flags)
+			app := ui.New(metrics.POD, interval, podOpts, flags)
 			return app.Run()
 		},
 	}

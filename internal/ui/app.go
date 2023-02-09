@@ -24,13 +24,13 @@ type App struct {
 	items    *tview.List
 	cpu      *tvxwidgets.Plot
 	mem      *tvxwidgets.Plot
-	resource string
+	resource metrics.Resource
 	options  interface{}
 	current  string
 	tick     time.Ticker
 }
 
-func New(resource string, interval int, options interface{}, flags *genericclioptions.ConfigFlags) *App {
+func New(resource metrics.Resource, interval int, options interface{}, flags *genericclioptions.ConfigFlags) *App {
 	app := &App{
 		client:   metrics.New(flags),
 		resource: resource,
@@ -109,7 +109,7 @@ func (a *App) setCurrent() {
 	line, _ := a.items.GetItemText(a.items.GetCurrentItem())
 	sections := strings.Fields(line)
 	x := 0
-	if a.resource == "pod" {
+	if a.resource == metrics.POD {
 		x = 1
 	}
 	a.current = sections[x]
@@ -118,7 +118,7 @@ func (a *App) setCurrent() {
 func (a *App) update() {
 	var err error
 	var m []metrics.MetricsValues
-	if a.resource == "pod" {
+	if a.resource == metrics.POD {
 		m, err = a.client.GetPodMetrics(a.options.(*top.TopPodOptions))
 	} else {
 		m, err = a.client.GetNodeMetrics(a.options.(*top.TopNodeOptions))
@@ -169,7 +169,7 @@ func (a *App) updateList() {
 	}
 	a.setCurrent()
 	a.frame = tview.NewFrame(a.items).AddText(header, true, tview.AlignLeft, tcell.ColorWhite|tcell.Color(tcell.AttrBold))
-	a.frame.SetBorder(true).SetTitle(a.resource).SetTitleAlign(tview.AlignLeft)
+	a.frame.SetBorder(true).SetTitle(string(a.resource)).SetTitleAlign(tview.AlignLeft)
 }
 
 func (a *App) updateGraphs() {

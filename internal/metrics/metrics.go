@@ -24,6 +24,13 @@ import (
 	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
+type Resource string
+
+const (
+	POD  Resource = "PODS"
+	NODE Resource = "NODES"
+)
+
 // MetricsValues is an object containing the cpu/memory resources for
 // a pod/node that is used to populate termui widgets
 type MetricsValues struct {

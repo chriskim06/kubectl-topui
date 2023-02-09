@@ -18,6 +18,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/chriskim06/kubectl-ptop/internal/metrics"
 	"github.com/chriskim06/kubectl-ptop/internal/ui"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -38,7 +39,7 @@ var (
 		Short:   "Show node metrics",
 		Long:    addKeyboardShortcutsToDescription("Show various widgets for node metrics."),
 		RunE: func(_ *cobra.Command, args []string) error {
-			app := ui.New("node", interval, nodeOpts, flags)
+			app := ui.New(metrics.NODE, interval, nodeOpts, flags)
 			return app.Run()
 		},
 	}

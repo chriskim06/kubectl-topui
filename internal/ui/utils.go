@@ -12,12 +12,12 @@ import (
 	"github.com/rivo/tview"
 )
 
-var headers = map[string]string{
-	"pod":  "NAMESPACE\tNAME\tREADY\tSTATUS\tCPU USAGE\tCPU LIMIT\tCPU %\tMEM USAGE\tMEM LIMIT\tMEM %\tRESTARTS\tAGE",
-	"node": "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
+var headers = map[metrics.Resource]string{
+	metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tCPU USAGE\tCPU LIMIT\tCPU %\tMEM USAGE\tMEM LIMIT\tMEM %\tRESTARTS\tAGE",
+	metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
 }
 
-func tabStrings(data []metrics.MetricsValues, resource string) (string, []string) {
+func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string, []string) {
 	var b bytes.Buffer
 	w := tabwriter.NewWriter(&b, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, headers[resource])
@@ -31,8 +31,8 @@ func tabStrings(data []metrics.MetricsValues, resource string) (string, []string
 	return header, items
 }
 
-func fmtStr(m metrics.MetricsValues, resource string) string {
-	if resource == "pod" {
+func fmtStr(m metrics.MetricsValues, resource metrics.Resource) string {
+	if resource == metrics.POD {
 		return fmt.Sprintf(
 			"%s\t%s\t%s\t%s\t%dm\t%dm\t%0.2f%%\t%dMi\t%dm\t%0.2f%%\t%d\t%s",
 			m.Namespace,
