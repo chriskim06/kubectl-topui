@@ -1,11 +1,10 @@
 /*
 Copyright © 2020 Chris Kim
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/kubectl/pkg/cmd/top"
 	"k8s.io/kubectl/pkg/metricsutil"
 	metricsapi "k8s.io/metrics/pkg/apis/metrics"
@@ -42,16 +41,16 @@ type resourceLimits struct {
 
 // GetPodMetrics returns a slice of objects that are meant to be easily
 // consumable by the various termui widgets
-func GetPodMetrics(o *top.TopPodOptions, flags *genericclioptions.ConfigFlags) ([]MetricsValues, error) {
-	clientset, metricsClient, ns, err := getClientsAndNamespace(flags)
+func (m MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, error) {
+	ns, err := getNamespace(m.flags)
 	if err != nil {
 		return nil, err
 	}
 	if ns == "" {
 		ns = metav1.NamespaceAll
 	}
-	o.MetricsClient = metricsClient
-	o.PodClient = clientset.CoreV1()
+	o.MetricsClient = m.m
+	o.PodClient = m.k.CoreV1()
 	o.Printer = metricsutil.NewTopCmdPrinter(o.Out)
 
 	versionedMetrics := &metricsv1beta1api.PodMetricsList{}
@@ -100,23 +99,37 @@ func GetPodMetrics(o *top.TopPodOptions, flags *genericclioptions.ConfigFlags) (
 	}
 	var pods []v1.Pod
 	pods = append(pods, podList.Items...)
+	podMapping := map[string]v1.Pod{}
+	for _, pod := range pods {
+		podMapping[pod.Name] = pod
+	}
 	limits := getPodResourceLimits(pods)
 
 	values := []MetricsValues{}
 	for _, item := range metrics.Items {
+		name := item.Name
 		podMetrics := getPodMetrics(&item)
 		cpuQuantity := podMetrics[v1.ResourceCPU]
-		cpuAvailable := limits[item.Name].CPU
+		cpuAvailable := limits[name].CPU
 		cpuFraction := float64(cpuQuantity.MilliValue()) / float64(cpuAvailable) * 100
 		memQuantity := podMetrics[v1.ResourceMemory]
-		memAvailable := limits[item.Name].Mem
+		memAvailable := limits[name].Mem
 		memFraction := float64(memQuantity.MilliValue()) / float64(memAvailable) * 100
+		ready, total, restarts := containerStatuses(podMapping[name].Status)
 		values = append(values, MetricsValues{
-			Name:       item.Name,
+			Name:       name,
 			CPUPercent: cpuFraction,
 			MemPercent: memFraction,
 			CPUCores:   int(cpuQuantity.MilliValue()),
 			MemCores:   int(memQuantity.Value() / (1024 * 1024)),
+			CPULimit:   cpuAvailable,
+			MemLimit:   memAvailable,
+			Namespace:  podMapping[name].Namespace,
+			Status:     string(podMapping[name].Status.Phase),
+			Age:        translateTimestampSince(podMapping[name].CreationTimestamp),
+			Restarts:   restarts,
+			Ready:      ready,
+			Total:      total,
 		})
 	}
 
@@ -126,6 +139,28 @@ func GetPodMetrics(o *top.TopPodOptions, flags *genericclioptions.ConfigFlags) (
 	})
 
 	return values, nil
+}
+
+func containerStatuses(stats v1.PodStatus) (int, int, int) {
+	var ready, restarts int
+	for _, stat := range stats.ContainerStatuses {
+		restarts += int(stat.RestartCount)
+		if stat.Ready {
+			ready++
+		}
+	}
+	for _, stat := range stats.InitContainerStatuses {
+		restarts += int(stat.RestartCount)
+	}
+	return ready, len(stats.ContainerStatuses), restarts
+}
+
+func translateTimestampSince(timestamp metav1.Time) string {
+	if timestamp.IsZero() {
+		return "<unknown>"
+	}
+
+	return duration.HumanDuration(time.Since(timestamp.Time))
 }
 
 func verifyEmptyMetrics(o top.TopPodOptions, selector labels.Selector) error {

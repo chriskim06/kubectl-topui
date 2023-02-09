@@ -17,8 +17,6 @@ package cmd
 
 import (
 	"fmt"
-
-	"github.com/chriskim06/kubectl-ptop/internal/view"
 )
 
 const (
@@ -37,11 +35,6 @@ Keyboard Shortcuts:
 )
 
 func isValidSortKey(s string) bool {
-	if len(s) > 0 {
-		if s != view.SortByCpu && s != view.SortByMemory && s != view.SortByCpuPercent && s != view.SortByMemoryPercent {
-			return false
-		}
-	}
 	return true
 }
 
