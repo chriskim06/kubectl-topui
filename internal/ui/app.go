@@ -168,7 +168,7 @@ func (a *App) updateList() {
 		}
 	}
 	a.setCurrent()
-	a.frame = tview.NewFrame(a.items).AddText(header, true, tview.AlignLeft, tcell.ColorWhite|tcell.Color(tcell.AttrBold))
+	a.frame = tview.NewFrame(a.items).AddText(header, true, tview.AlignLeft, tcell.Color(tcell.AttrBold))
 	a.frame.SetBorder(true).SetTitle(string(a.resource)).SetTitleAlign(tview.AlignLeft)
 }
 
