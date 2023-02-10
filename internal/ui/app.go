@@ -22,7 +22,8 @@ type App struct {
 	cpuData  map[string][][]float64
 	memData  map[string][][]float64
 	view     *tview.Application
-	frame    *tview.Frame
+	frame    *tview.Grid
+	header   *tview.TextView
 	items    *tview.List
 	info     *tview.TextView
 	cpu      *tvxwidgets.Plot
@@ -43,6 +44,7 @@ func New(resource metrics.Resource, interval int, options interface{}, flags *ge
 		resource: resource,
 		options:  options,
 		items:    tview.NewList().ShowSecondaryText(false),
+		header:   tview.NewTextView().SetTextAlign(tview.AlignLeft).SetTextStyle(tcell.StyleDefault.Bold(true)),
 		info:     info,
 		cpu:      NewPlot(),
 		mem:      NewPlot(),
@@ -97,7 +99,7 @@ func (a *App) update() {
 		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores.Value()/(1024*1024)))
 	}
 	a.data = m
-	header, items := tabStrings(a.data, a.resource)
+	_, items := tabStrings(a.data, a.resource)
 	if a.items.GetItemCount() == 0 {
 		for _, item := range items {
 			a.items.AddItem(item, "", 0, nil)
@@ -108,8 +110,7 @@ func (a *App) update() {
 		}
 	}
 	a.setCurrent()
-	a.frame = tview.NewFrame(a.items).AddText(header, true, tview.AlignLeft, tcell.Color(tcell.AttrBold))
-	a.frame.SetBorder(true).SetTitle(string(a.resource)).SetTitleAlign(tview.AlignLeft)
+	a.updateFrame()
 	a.updateGraphs()
 }
 
@@ -144,6 +145,12 @@ func (a *App) init() {
 	a.update()
 	a.initInfo()
 	a.initItems()
+	a.frame = tview.NewGrid().
+		SetRows(1, 0).
+		SetColumns(0).
+		AddItem(a.header, 0, 0, 1, 1, 0, 0, false).
+		AddItem(a.items, 1, 0, 1, 1, 0, 0, false)
+	a.frame.SetBorder(true)
 
 	grid := tview.NewGrid().
 		SetRows(0, 0).
@@ -191,10 +198,16 @@ func (a *App) initInfo() {
 		}
 	})
 	a.info.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Rune() == 'q' {
+		switch event.Rune() {
+		case 'q':
 			a.info.SetTitle("")
 			a.info.Clear()
 			a.view.SetFocus(a.items)
+			return nil
+		case '?':
+			a.pages.ShowPage(helpPageName)
+			a.view.SetFocus(a.pages)
+			return nil
 		}
 		return event
 	})
@@ -209,6 +222,7 @@ func (a *App) initItems() {
 	})
 	a.items.SetChangedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
 		a.setCurrent()
+		a.updateFrame()
 		a.updateGraphs()
 	})
 	a.items.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -232,6 +246,7 @@ func (a *App) initItems() {
 			a.view.SetFocus(a.info)
 			return nil
 		}
+		vertical, horizontal := a.items.GetOffset()
 		switch event.Rune() {
 		case 'q':
 			a.view.Stop()
@@ -250,6 +265,17 @@ func (a *App) initItems() {
 			a.setCurrent()
 			a.updateGraphs()
 			return nil
+		case 'l':
+			a.items.SetOffset(vertical, horizontal+1)
+			a.updateFrame()
+			return nil
+		case 'h':
+			if horizontal-1 < 0 {
+				return nil
+			}
+			a.items.SetOffset(vertical, horizontal-1)
+			a.updateFrame()
+			return nil
 		case '?':
 			a.pages.ShowPage(helpPageName)
 			a.view.SetFocus(a.pages)
@@ -257,6 +283,12 @@ func (a *App) initItems() {
 		}
 		return event
 	})
+}
+
+func (a *App) updateFrame() {
+	_, horizontal := a.items.GetOffset()
+	header, _ := tabStrings(a.data, a.resource)
+	a.header.SetText(header[horizontal:])
 }
 
 func (a *App) setCurrent() {
