@@ -17,6 +17,13 @@ var headers = map[metrics.Resource]string{
 	metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
 }
 
+func helpText() string {
+	return `Keyboard Shortcuts:
+  - j: move selection down
+  - k: move selection up
+  - q: quit application`
+}
+
 func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string, []string) {
 	var b bytes.Buffer
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)

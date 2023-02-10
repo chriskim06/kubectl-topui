@@ -25,6 +25,7 @@ type App struct {
 	info     *tview.TextView
 	cpu      *tvxwidgets.Plot
 	mem      *tvxwidgets.Plot
+	pages    *tview.Pages
 	resource metrics.Resource
 	options  interface{}
 	current  string
@@ -139,7 +140,6 @@ func (a *App) updateGraphs() {
 
 func (a *App) init() {
 	a.update()
-	a.initFrame()
 	a.initInfo()
 	a.initItems()
 
@@ -151,16 +151,24 @@ func (a *App) init() {
 		AddItem(a.frame, 1, 0, 1, 4, 0, 0, true).
 		AddItem(a.info, 1, 4, 1, 2, 0, 0, false)
 
-	a.view.SetRoot(grid, true).SetFocus(a.items)
-}
+	help := tview.NewTextView()
+	help.SetTextAlign(tview.AlignLeft).SetBorder(true).SetBorderColor(tcell.ColorPink).SetBorderPadding(1, 1, 1, 1).SetTitle("Help").SetTitleAlign(tview.AlignLeft)
+	help.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			a.pages.HidePage("help")
+			a.view.SetFocus(a.items)
+			return nil
+		}
+		return event
+	})
+	help.SetText(helpText())
+	helpBox := tview.NewGrid().SetRows(0, 0, 0).SetColumns(0, 0, 0).AddItem(help, 1, 1, 1, 1, 0, 0, true)
+	pages := tview.NewPages().
+		AddPage("app", grid, true, true).
+		AddPage("help", helpBox, true, false)
 
-func (a *App) initFrame() {
-	a.frame.SetFocusFunc(func() {
-		a.frame.SetBorderColor(tcell.ColorPink)
-	})
-	a.frame.SetBlurFunc(func() {
-		a.frame.SetBorderColor(tcell.ColorWhite)
-	})
+	a.pages = pages
+	a.view.SetRoot(pages, true).SetFocus(a.items)
 }
 
 func (a *App) initInfo() {
@@ -191,6 +199,12 @@ func (a *App) initInfo() {
 }
 
 func (a *App) initItems() {
+	a.items.SetFocusFunc(func() {
+		a.frame.SetBorderColor(tcell.ColorPink)
+	})
+	a.items.SetBlurFunc(func() {
+		a.frame.SetBorderColor(tcell.ColorWhite)
+	})
 	a.items.SetChangedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
 		a.setCurrent()
 		a.updateGraphs()
@@ -219,6 +233,7 @@ func (a *App) initItems() {
 		switch event.Rune() {
 		case 'q':
 			a.view.Stop()
+			return nil
 		case 'j':
 			i := a.items.GetCurrentItem() + 1
 			if i > a.items.GetItemCount()-1 {
@@ -232,6 +247,10 @@ func (a *App) initItems() {
 			a.items.SetCurrentItem(a.items.GetCurrentItem() - 1)
 			a.setCurrent()
 			a.updateGraphs()
+			return nil
+		case '?':
+			a.pages.ShowPage("help")
+			a.view.SetFocus(a.pages)
 			return nil
 		}
 		return event
