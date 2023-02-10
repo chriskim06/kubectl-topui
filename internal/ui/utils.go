@@ -12,16 +12,17 @@ import (
 	"github.com/rivo/tview"
 )
 
+const helpText = `This app shows metrics for pods and nodes! The graphs display the limit and usage for the cpu and memory of whichever item is selected.
+
+Keyboard Shortcuts
+  - j: move selection down or scroll down spec
+  - k: move selection up or scroll up spec
+  - q: quit application or clear pod/node spec
+  - ?: open/close this help menu`
+
 var headers = map[metrics.Resource]string{
 	metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tMEM USAGE\tMEM LIMIT\tRESTARTS\tAGE",
 	metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
-}
-
-func helpText() string {
-	return `Keyboard Shortcuts:
-  - j: move selection down
-  - k: move selection up
-  - q: quit application`
 }
 
 func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string, []string) {

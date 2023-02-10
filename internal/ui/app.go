@@ -170,7 +170,7 @@ func (a *App) init() {
 		}
 		return event
 	})
-	help.SetText(helpText())
+	help.SetText(helpText)
 	helpBox := tview.NewGrid().SetRows(0, 0, 0).SetColumns(0, 0, 0).AddItem(help, 1, 1, 1, 1, 0, 0, true)
 	pages := tview.NewPages().
 		AddPage("app", grid, true, true).
