@@ -32,12 +32,15 @@ type App struct {
 }
 
 func New(resource metrics.Resource, interval int, options interface{}, flags *genericclioptions.ConfigFlags) *App {
+	info := tview.NewTextView().SetWrap(true)
+	info.SetBorder(true)
+	info.SetTitleAlign(tview.AlignLeft)
 	app := &App{
 		client:   metrics.New(flags),
 		resource: resource,
 		options:  options,
 		items:    tview.NewList().ShowSecondaryText(false),
-		info:     tview.NewTextView().SetWrap(true),
+		info:     info,
 		cpu:      NewPlot(),
 		mem:      NewPlot(),
 		cpuData:  map[string][][]float64{},
@@ -45,88 +48,7 @@ func New(resource metrics.Resource, interval int, options interface{}, flags *ge
 		view:     tview.NewApplication(),
 		tick:     *time.NewTicker(time.Duration(interval) * time.Second),
 	}
-	app.info.SetBorder(true)
-	app.info.SetTitleAlign(tview.AlignLeft)
-	app.update()
-
-	grid := tview.NewGrid().
-		SetRows(0, 0).
-		SetColumns(0, 0, 0, 0, 0, 0).
-		AddItem(app.cpu, 0, 0, 1, 3, 0, 0, false).
-		AddItem(app.mem, 0, 3, 1, 3, 0, 0, false).
-		AddItem(app.frame, 1, 0, 1, 4, 0, 0, true).
-		AddItem(app.info, 1, 4, 1, 2, 0, 0, false)
-
-	app.frame.SetFocusFunc(func() {
-		app.frame.SetBorderColor(tcell.ColorPink)
-	})
-	app.frame.SetBlurFunc(func() {
-		app.frame.SetBorderColor(tcell.ColorWhite)
-	})
-	app.info.SetFocusFunc(func() {
-		app.info.SetBorderColor(tcell.ColorPink)
-	})
-	app.info.SetBlurFunc(func() {
-		app.info.SetBorderColor(tcell.ColorWhite)
-	})
-	app.info.SetChangedFunc(func() {
-		app.view.Draw()
-	})
-	app.info.SetDoneFunc(func(key tcell.Key) {
-		if key == tcell.KeyEscape {
-			app.info.SetTitle("")
-			app.info.Clear()
-			app.view.SetFocus(app.items)
-		}
-	})
-	app.info.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Rune() == 'q' {
-			app.info.SetTitle("")
-			app.info.Clear()
-			app.view.SetFocus(app.items)
-		}
-		return event
-	})
-	app.items.SetChangedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
-		app.setCurrent()
-		app.updateGraphs()
-	})
-	app.items.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEnter {
-			if app.current == "" {
-				return event
-			}
-			pod, err := app.client.GetPod(app.current)
-			if err != nil {
-				app.info.SetText(err.Error())
-			} else {
-				app.info.SetText(pod)
-			}
-			app.info.SetTitle(app.current)
-			app.view.SetFocus(app.info)
-			return nil
-		}
-		switch event.Rune() {
-		case 'q':
-			app.view.Stop()
-		case 'j':
-			i := app.items.GetCurrentItem() + 1
-			if i > app.items.GetItemCount()-1 {
-				i = 0
-			}
-			app.items.SetCurrentItem(i)
-			app.setCurrent()
-			app.updateGraphs()
-			return nil
-		case 'k':
-			app.items.SetCurrentItem(app.items.GetCurrentItem() - 1)
-			app.setCurrent()
-			app.updateGraphs()
-			return nil
-		}
-		return event
-	})
-	app.view.SetRoot(grid, true).SetFocus(app.items)
+	app.init()
 	return app
 }
 
@@ -151,16 +73,6 @@ func (a App) Run() error {
 	return a.view.Run()
 }
 
-func (a *App) setCurrent() {
-	line, _ := a.items.GetItemText(a.items.GetCurrentItem())
-	sections := strings.Fields(line)
-	x := 0
-	if a.resource == metrics.POD {
-		x = 1
-	}
-	a.current = sections[x]
-}
-
 func (a *App) update() {
 	var err error
 	var m []metrics.MetricsValues
@@ -174,24 +86,7 @@ func (a *App) update() {
 	}
 	for _, metric := range m {
 		name := metric.Name
-		if a.cpuData[name] == nil {
-			a.cpuData[name] = [][]float64{{}, {}}
-		}
-		if a.memData[name] == nil {
-			a.memData[name] = [][]float64{{}, {}}
-		}
-		if len(a.cpuData[name][0]) == 100 {
-			a.cpuData[name][0] = a.cpuData[name][0][1:]
-		}
-		if len(a.cpuData[name][1]) == 100 {
-			a.cpuData[name][1] = a.cpuData[name][1][1:]
-		}
-		if len(a.memData[name][0]) == 100 {
-			a.memData[name][0] = a.memData[name][0][1:]
-		}
-		if len(a.memData[name][1]) == 100 {
-			a.memData[name][1] = a.memData[name][1][1:]
-		}
+		a.graphUpkeep(name)
 		a.cpuData[name][0] = append(a.cpuData[name][0], float64(metric.CPULimit))
 		a.cpuData[name][1] = append(a.cpuData[name][1], float64(metric.CPUCores))
 		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit))
@@ -214,9 +109,135 @@ func (a *App) update() {
 	a.updateGraphs()
 }
 
+func (a *App) graphUpkeep(name string) {
+	if a.cpuData[name] == nil {
+		a.cpuData[name] = [][]float64{{}, {}}
+	}
+	if a.memData[name] == nil {
+		a.memData[name] = [][]float64{{}, {}}
+	}
+	if len(a.cpuData[name][0]) == 100 {
+		a.cpuData[name][0] = a.cpuData[name][0][1:]
+	}
+	if len(a.cpuData[name][1]) == 100 {
+		a.cpuData[name][1] = a.cpuData[name][1][1:]
+	}
+	if len(a.memData[name][0]) == 100 {
+		a.memData[name][0] = a.memData[name][0][1:]
+	}
+	if len(a.memData[name][1]) == 100 {
+		a.memData[name][1] = a.memData[name][1][1:]
+	}
+}
+
 func (a *App) updateGraphs() {
 	a.cpu.SetData(a.cpuData[a.current])
 	a.mem.SetData(a.memData[a.current])
 	a.cpu.SetTitle(fmt.Sprintf("CPU - %s", a.current))
 	a.mem.SetTitle(fmt.Sprintf("MEM - %s", a.current))
+}
+
+func (a *App) init() {
+	a.update()
+	a.initFrame()
+	a.initInfo()
+	a.initItems()
+
+	grid := tview.NewGrid().
+		SetRows(0, 0).
+		SetColumns(0, 0, 0, 0, 0, 0).
+		AddItem(a.cpu, 0, 0, 1, 3, 0, 0, false).
+		AddItem(a.mem, 0, 3, 1, 3, 0, 0, false).
+		AddItem(a.frame, 1, 0, 1, 4, 0, 0, true).
+		AddItem(a.info, 1, 4, 1, 2, 0, 0, false)
+
+	a.view.SetRoot(grid, true).SetFocus(a.items)
+}
+
+func (a *App) initFrame() {
+	a.frame.SetFocusFunc(func() {
+		a.frame.SetBorderColor(tcell.ColorPink)
+	})
+	a.frame.SetBlurFunc(func() {
+		a.frame.SetBorderColor(tcell.ColorWhite)
+	})
+}
+
+func (a *App) initInfo() {
+	a.info.SetFocusFunc(func() {
+		a.info.SetBorderColor(tcell.ColorPink)
+	})
+	a.info.SetBlurFunc(func() {
+		a.info.SetBorderColor(tcell.ColorWhite)
+	})
+	a.info.SetChangedFunc(func() {
+		a.view.Draw()
+	})
+	a.info.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyEscape {
+			a.info.SetTitle("")
+			a.info.Clear()
+			a.view.SetFocus(a.items)
+		}
+	})
+	a.info.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Rune() == 'q' {
+			a.info.SetTitle("")
+			a.info.Clear()
+			a.view.SetFocus(a.items)
+		}
+		return event
+	})
+}
+
+func (a *App) initItems() {
+	a.items.SetChangedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
+		a.setCurrent()
+		a.updateGraphs()
+	})
+	a.items.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEnter {
+			if a.current == "" {
+				return event
+			}
+			pod, err := a.client.GetPod(a.current)
+			if err != nil {
+				a.info.SetText(err.Error())
+			} else {
+				a.info.SetText(pod)
+			}
+			a.info.SetTitle(a.current)
+			a.view.SetFocus(a.info)
+			return nil
+		}
+		switch event.Rune() {
+		case 'q':
+			a.view.Stop()
+		case 'j':
+			i := a.items.GetCurrentItem() + 1
+			if i > a.items.GetItemCount()-1 {
+				i = 0
+			}
+			a.items.SetCurrentItem(i)
+			a.setCurrent()
+			a.updateGraphs()
+			return nil
+		case 'k':
+			a.items.SetCurrentItem(a.items.GetCurrentItem() - 1)
+			a.setCurrent()
+			a.updateGraphs()
+			return nil
+		}
+		return event
+	})
+}
+
+func (a *App) setCurrent() {
+	line, _ := a.items.GetItemText(a.items.GetCurrentItem())
+	sections := strings.Fields(line)
+	x := 0
+	if a.resource == metrics.POD {
+		x = 1
+	}
+	a.current = sections[x]
 }
