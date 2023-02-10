@@ -43,6 +43,7 @@ type MetricsValues struct {
 	MemLimit   int64
 
 	Namespace string
+	Node      string
 	Status    string
 	Age       string
 	Restarts  int

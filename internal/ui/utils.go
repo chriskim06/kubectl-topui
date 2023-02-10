@@ -13,7 +13,7 @@ import (
 )
 
 var headers = map[metrics.Resource]string{
-	metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tCPU USAGE\tCPU LIMIT\tCPU %\tMEM USAGE\tMEM LIMIT\tMEM %\tRESTARTS\tAGE",
+	metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tCPU %\tMEM USAGE\tMEM LIMIT\tMEM %\tRESTARTS\tAGE",
 	metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
 }
 
@@ -34,11 +34,12 @@ func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string
 func fmtStr(m metrics.MetricsValues, resource metrics.Resource) string {
 	if resource == metrics.POD {
 		return fmt.Sprintf(
-			"%s\t%s\t%s\t%s\t%dm\t%dm\t%0.2f%%\t%dMi\t%dm\t%0.2f%%\t%d\t%s",
+			"%s\t%s\t%s\t%s\t%s\t%dm\t%dm\t%0.2f%%\t%dMi\t%dm\t%0.2f%%\t%d\t%s",
 			m.Namespace,
 			m.Name,
 			fmt.Sprintf("%d/%d", m.Ready, m.Total),
 			m.Status,
+			m.Node,
 			m.CPUCores,
 			m.CPULimit,
 			m.CPUPercent,

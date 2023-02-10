@@ -123,6 +123,7 @@ func (m MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, err
 			CPULimit:   cpuAvailable,
 			MemLimit:   memAvailable,
 			Namespace:  podMapping[name].Namespace,
+			Node:       podMapping[name].Spec.NodeName,
 			Status:     string(podMapping[name].Status.Phase),
 			Age:        translateTimestampSince(podMapping[name].CreationTimestamp),
 			Restarts:   restarts,
