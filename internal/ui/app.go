@@ -89,8 +89,8 @@ func (a *App) update() {
 		a.graphUpkeep(name)
 		a.cpuData[name][0] = append(a.cpuData[name][0], float64(metric.CPULimit.MilliValue()))
 		a.cpuData[name][1] = append(a.cpuData[name][1], float64(metric.CPUCores.MilliValue()))
-		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit.MilliValue()))
-		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores.MilliValue()))
+		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit.Value()/(1024*1024)))
+		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores.Value()/(1024*1024)))
 	}
 	a.data = m
 	header, items := tabStrings(a.data, a.resource)
