@@ -14,6 +14,8 @@ import (
 	"k8s.io/kubectl/pkg/cmd/top"
 )
 
+const helpPageName = "Help"
+
 type App struct {
 	client   metrics.MetricsClient
 	data     []metrics.MetricsValues
@@ -83,6 +85,7 @@ func (a *App) update() {
 		m, err = a.client.GetNodeMetrics(a.options.(*top.TopNodeOptions))
 	}
 	if err != nil {
+		a.view.Stop()
 		log.Fatal(err)
 	}
 	for _, metric := range m {
@@ -111,11 +114,10 @@ func (a *App) update() {
 }
 
 func (a *App) graphUpkeep(name string) {
-	if a.cpuData[name] == nil {
+	if a.cpuData[name] == nil || a.memData[name] == nil {
 		a.cpuData[name] = [][]float64{{}, {}}
-	}
-	if a.memData[name] == nil {
 		a.memData[name] = [][]float64{{}, {}}
+		return
 	}
 	if len(a.cpuData[name][0]) == 100 {
 		a.cpuData[name][0] = a.cpuData[name][0][1:]
@@ -152,10 +154,10 @@ func (a *App) init() {
 		AddItem(a.info, 1, 4, 1, 2, 0, 0, false)
 
 	help := tview.NewTextView()
-	help.SetTextAlign(tview.AlignLeft).SetBorder(true).SetBorderColor(tcell.ColorPink).SetBorderPadding(1, 1, 1, 1).SetTitle("Help").SetTitleAlign(tview.AlignLeft)
+	help.SetTextAlign(tview.AlignLeft).SetBorder(true).SetBorderColor(tcell.ColorPink).SetBorderPadding(1, 1, 1, 1).SetTitle(helpPageName).SetTitleAlign(tview.AlignLeft)
 	help.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-			a.pages.HidePage("help")
+		if event.Key() == tcell.KeyEscape || event.Rune() == 'q' || event.Rune() == '?' {
+			a.pages.HidePage(helpPageName)
 			a.view.SetFocus(a.items)
 			return nil
 		}
@@ -165,7 +167,7 @@ func (a *App) init() {
 	helpBox := tview.NewGrid().SetRows(0, 0, 0).SetColumns(0, 0, 0).AddItem(help, 1, 1, 1, 1, 0, 0, true)
 	pages := tview.NewPages().
 		AddPage("app", grid, true, true).
-		AddPage("help", helpBox, true, false)
+		AddPage(helpPageName, helpBox, true, false)
 
 	a.pages = pages
 	a.view.SetRoot(pages, true).SetFocus(a.items)
@@ -249,7 +251,7 @@ func (a *App) initItems() {
 			a.updateGraphs()
 			return nil
 		case '?':
-			a.pages.ShowPage("help")
+			a.pages.ShowPage(helpPageName)
 			a.view.SetFocus(a.pages)
 			return nil
 		}
