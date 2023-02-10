@@ -30,6 +30,7 @@ import (
 	"k8s.io/kubectl/pkg/metricsutil"
 	metricsapi "k8s.io/metrics/pkg/apis/metrics"
 	metricsv1beta1api "k8s.io/metrics/pkg/apis/metrics/v1beta1"
+	"sigs.k8s.io/yaml"
 )
 
 const metricsCreationDelay = 2 * time.Minute
@@ -138,6 +139,22 @@ func (m MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, err
 	})
 
 	return values, nil
+}
+
+func (m MetricsClient) GetPod(name string) (string, error) {
+	ns, err := getNamespace(m.flags)
+	if err != nil {
+		return "", err
+	}
+	pod, err := m.k.CoreV1().Pods(ns).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	s, err := yaml.Marshal(pod)
+	if err != nil {
+		return "", err
+	}
+	return string(s), nil
 }
 
 func containerStatuses(stats v1.PodStatus) (int, int, int) {

@@ -22,6 +22,7 @@ type App struct {
 	view     *tview.Application
 	frame    *tview.Frame
 	items    *tview.List
+	info     *tview.TextView
 	cpu      *tvxwidgets.Plot
 	mem      *tvxwidgets.Plot
 	resource metrics.Resource
@@ -36,6 +37,7 @@ func New(resource metrics.Resource, interval int, options interface{}, flags *ge
 		resource: resource,
 		options:  options,
 		items:    tview.NewList().ShowSecondaryText(false),
+		info:     tview.NewTextView().SetWrap(true),
 		cpu:      NewPlot(),
 		mem:      NewPlot(),
 		cpuData:  map[string][][]float64{},
@@ -43,28 +45,88 @@ func New(resource metrics.Resource, interval int, options interface{}, flags *ge
 		view:     tview.NewApplication(),
 		tick:     *time.NewTicker(time.Duration(interval) * time.Second),
 	}
+	app.info.SetBorder(true)
+	app.info.SetTitleAlign(tview.AlignLeft)
 	app.update()
 
-	graphs := tview.NewFlex().
-		AddItem(app.cpu, 0, 1, false).
-		AddItem(app.mem, 0, 1, false)
-	flex := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(graphs, 0, 1, false).
-		AddItem(app.frame, 0, 3, false)
+	grid := tview.NewGrid().
+		SetRows(0, 0).
+		SetColumns(0, 0, 0, 0, 0, 0).
+		AddItem(app.cpu, 0, 0, 1, 3, 0, 0, false).
+		AddItem(app.mem, 0, 3, 1, 3, 0, 0, false).
+		AddItem(app.frame, 1, 0, 1, 4, 0, 0, true).
+		AddItem(app.info, 1, 4, 1, 2, 0, 0, false)
 
-	app.view.SetRoot(flex, true).SetFocus(flex)
-	app.view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	app.frame.SetFocusFunc(func() {
+		app.frame.SetBorderColor(tcell.ColorPink)
+	})
+	app.frame.SetBlurFunc(func() {
+		app.frame.SetBorderColor(tcell.ColorWhite)
+	})
+	app.info.SetFocusFunc(func() {
+		app.info.SetBorderColor(tcell.ColorPink)
+	})
+	app.info.SetBlurFunc(func() {
+		app.info.SetBorderColor(tcell.ColorWhite)
+	})
+	app.info.SetChangedFunc(func() {
+		app.view.Draw()
+	})
+	app.info.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyEscape {
+			app.info.SetTitle("")
+			app.info.Clear()
+			app.view.SetFocus(app.items)
+		}
+	})
+	app.info.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Rune() == 'q' {
+			app.info.SetTitle("")
+			app.info.Clear()
+			app.view.SetFocus(app.items)
+		}
+		return event
+	})
+	app.items.SetChangedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
+		app.setCurrent()
+		app.updateGraphs()
+	})
+	app.items.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEnter {
+			if app.current == "" {
+				return event
+			}
+			pod, err := app.client.GetPod(app.current)
+			if err != nil {
+				app.info.SetText(err.Error())
+			} else {
+				app.info.SetText(pod)
+			}
+			app.info.SetTitle(app.current)
+			app.view.SetFocus(app.info)
+			return nil
+		}
 		switch event.Rune() {
 		case 'q':
 			app.view.Stop()
 		case 'j':
-			app.move(1)
+			i := app.items.GetCurrentItem() + 1
+			if i > app.items.GetItemCount()-1 {
+				i = 0
+			}
+			app.items.SetCurrentItem(i)
+			app.setCurrent()
+			app.updateGraphs()
+			return nil
 		case 'k':
-			app.move(-1)
+			app.items.SetCurrentItem(app.items.GetCurrentItem() - 1)
+			app.setCurrent()
+			app.updateGraphs()
+			return nil
 		}
 		return event
 	})
+	app.view.SetRoot(grid, true).SetFocus(app.items)
 	return app
 }
 
@@ -76,8 +138,9 @@ func (a App) Run() error {
 			case <-done:
 				return
 			case <-a.tick.C:
-				a.update()
-				a.view.Draw()
+				a.view.QueueUpdateDraw(func() {
+					a.update()
+				})
 			}
 		}
 	}()
@@ -86,25 +149,6 @@ func (a App) Run() error {
 		done <- true
 	}()
 	return a.view.Run()
-}
-
-func (a *App) move(i int) {
-	x := 0
-	cur := a.items.GetCurrentItem()
-	if cur+i >= a.items.GetItemCount() {
-		x = 0
-	} else if cur+i < 0 {
-		x = a.items.GetItemCount() - 1
-	} else {
-		x = cur + i
-	}
-	go func() {
-		a.view.QueueUpdateDraw(func() {
-			a.items.SetCurrentItem(x)
-			a.setCurrent()
-			a.updateGraphs()
-		})
-	}()
 }
 
 func (a *App) setCurrent() {
@@ -154,11 +198,6 @@ func (a *App) update() {
 		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores))
 	}
 	a.data = m
-	a.updateList()
-	a.updateGraphs()
-}
-
-func (a *App) updateList() {
 	header, items := tabStrings(a.data, a.resource)
 	if a.items.GetItemCount() == 0 {
 		for _, item := range items {
@@ -172,6 +211,7 @@ func (a *App) updateList() {
 	a.setCurrent()
 	a.frame = tview.NewFrame(a.items).AddText(header, true, tview.AlignLeft, tcell.Color(tcell.AttrBold))
 	a.frame.SetBorder(true).SetTitle(string(a.resource)).SetTitleAlign(tview.AlignLeft)
+	a.updateGraphs()
 }
 
 func (a *App) updateGraphs() {
