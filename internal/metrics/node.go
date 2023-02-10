@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubectl/pkg/metricsutil"
 	metricsapi "k8s.io/metrics/pkg/apis/metrics"
 	metricsV1beta1api "k8s.io/metrics/pkg/apis/metrics/v1beta1"
+	"sigs.k8s.io/yaml"
 )
 
 // GetNodeMetrics returns a slice of objects that are meant to be easily
@@ -74,10 +75,10 @@ func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricsValues, e
 			Name:       m.Name,
 			CPUPercent: cpuFraction,
 			MemPercent: memFraction,
-			CPUCores:   int(cpuQuantity.MilliValue()),
-			MemCores:   int(memQuantity.Value() / (1024 * 1024)),
-			CPULimit:   cpuAvailable.MilliValue(),
-			MemLimit:   memAvailable.MilliValue(),
+			CPUCores:   cpuQuantity,
+			MemCores:   memQuantity,
+			CPULimit:   cpuAvailable,
+			MemLimit:   memAvailable,
 		})
 	}
 
@@ -87,4 +88,16 @@ func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricsValues, e
 	})
 
 	return values, nil
+}
+
+func (m MetricsClient) GetNode(name string) (string, error) {
+	node, err := m.k.CoreV1().Nodes().Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	s, err := yaml.Marshal(node)
+	if err != nil {
+		return "", err
+	}
+	return string(s), nil
 }

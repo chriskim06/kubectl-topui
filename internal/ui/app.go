@@ -87,10 +87,10 @@ func (a *App) update() {
 	for _, metric := range m {
 		name := metric.Name
 		a.graphUpkeep(name)
-		a.cpuData[name][0] = append(a.cpuData[name][0], float64(metric.CPULimit))
-		a.cpuData[name][1] = append(a.cpuData[name][1], float64(metric.CPUCores))
-		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit))
-		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores))
+		a.cpuData[name][0] = append(a.cpuData[name][0], float64(metric.CPULimit.MilliValue()))
+		a.cpuData[name][1] = append(a.cpuData[name][1], float64(metric.CPUCores.MilliValue()))
+		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit.MilliValue()))
+		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores.MilliValue()))
 	}
 	a.data = m
 	header, items := tabStrings(a.data, a.resource)
@@ -200,11 +200,17 @@ func (a *App) initItems() {
 			if a.current == "" {
 				return event
 			}
-			pod, err := a.client.GetPod(a.current)
+			var output string
+			var err error
+			if a.resource == metrics.POD {
+				output, err = a.client.GetPod(a.current)
+			} else {
+				output, err = a.client.GetNode(a.current)
+			}
 			if err != nil {
 				a.info.SetText(err.Error())
 			} else {
-				a.info.SetText(pod)
+				a.info.SetText(output)
 			}
 			a.info.SetTitle(a.current)
 			a.view.SetFocus(a.info)

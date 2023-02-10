@@ -13,13 +13,13 @@ import (
 )
 
 var headers = map[metrics.Resource]string{
-	metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tCPU %\tMEM USAGE\tMEM LIMIT\tMEM %\tRESTARTS\tAGE",
+	metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tMEM USAGE\tMEM LIMIT\tRESTARTS\tAGE",
 	metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
 }
 
 func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string, []string) {
 	var b bytes.Buffer
-	w := tabwriter.NewWriter(&b, 0, 0, 3, ' ', 0)
+	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, headers[resource])
 	for _, m := range data {
 		fmt.Fprintln(w, fmtStr(m, resource))
@@ -34,30 +34,28 @@ func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string
 func fmtStr(m metrics.MetricsValues, resource metrics.Resource) string {
 	if resource == metrics.POD {
 		return fmt.Sprintf(
-			"%s\t%s\t%s\t%s\t%s\t%dm\t%dm\t%0.2f%%\t%dMi\t%dm\t%0.2f%%\t%d\t%s",
+			"%s\t%s\t%s\t%s\t%s\t%vm\t%vm\t%vMi\t%vMi\t%d\t%s",
 			m.Namespace,
 			m.Name,
 			fmt.Sprintf("%d/%d", m.Ready, m.Total),
 			m.Status,
 			m.Node,
-			m.CPUCores,
-			m.CPULimit,
-			m.CPUPercent,
-			m.MemCores,
-			m.MemLimit,
-			m.MemPercent,
+			m.CPUCores.MilliValue(),
+			m.CPULimit.MilliValue(),
+			m.MemCores.Value()/(1024*1024),
+			m.MemLimit.Value()/(1024*1024),
 			m.Restarts,
 			m.Age,
 		)
 	} else {
 		return fmt.Sprintf(
-			"%s\t%dm\t%dm\t%0.2f%%\t%dMi\t%dMi\t%0.2f%%",
+			"%s\t%vm\t%vm\t%0.2f%%\t%vMi\t%vMi\t%0.2f%%",
 			m.Name,
-			m.CPUCores,
-			m.CPULimit,
+			m.CPUCores.MilliValue(),
+			m.CPULimit.MilliValue(),
 			m.CPUPercent,
-			m.MemCores,
-			m.MemLimit,
+			m.MemCores.Value()/(1024*1024),
+			m.MemLimit.Value()/(1024*1024),
 			m.MemPercent,
 		)
 	}

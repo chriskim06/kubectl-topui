@@ -36,10 +36,10 @@ import (
 const metricsCreationDelay = 2 * time.Minute
 
 type resourceLimits struct {
-	cpuLimit   int64
-	memLimit   int64
-	cpuRequest int64
-	memRequest int64
+	cpuLimit   resource.Quantity
+	memLimit   resource.Quantity
+	cpuRequest resource.Quantity
+	memRequest resource.Quantity
 }
 
 // GetPodMetrics returns a slice of objects that are meant to be easily
@@ -116,20 +116,18 @@ func (m MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, err
 		memAvailable := limits[name].memLimit
 		ready, total, restarts := containerStatuses(podMapping[name].Status)
 		values = append(values, MetricsValues{
-			Name:       name,
-			CPUPercent: float64(cpuQuantity.MilliValue()) / float64(cpuAvailable) * 100,
-			MemPercent: float64(memQuantity.MilliValue()) / float64(memAvailable) * 100,
-			CPUCores:   int(cpuQuantity.MilliValue()),
-			MemCores:   int(memQuantity.Value() / (1024 * 1024)),
-			CPULimit:   cpuAvailable,
-			MemLimit:   memAvailable,
-			Namespace:  podMapping[name].Namespace,
-			Node:       podMapping[name].Spec.NodeName,
-			Status:     string(podMapping[name].Status.Phase),
-			Age:        translateTimestampSince(podMapping[name].CreationTimestamp),
-			Restarts:   restarts,
-			Ready:      ready,
-			Total:      total,
+			Name:      name,
+			CPUCores:  cpuQuantity,
+			MemCores:  memQuantity,
+			CPULimit:  cpuAvailable,
+			MemLimit:  memAvailable,
+			Namespace: podMapping[name].Namespace,
+			Node:      podMapping[name].Spec.NodeName,
+			Status:    string(podMapping[name].Status.Phase),
+			Age:       translateTimestampSince(podMapping[name].CreationTimestamp),
+			Restarts:  restarts,
+			Ready:     ready,
+			Total:     total,
 		})
 	}
 
@@ -238,15 +236,18 @@ func getPodMetrics(m *metricsapi.PodMetrics) v1.ResourceList {
 func getPodResourceLimits(pods []v1.Pod) map[string]resourceLimits {
 	limits := map[string]resourceLimits{}
 	for _, pod := range pods {
-		var cpuLimit, memLimit, cpuRequest, memRequest int64
+		cpuLimit, _ := resource.ParseQuantity("0")
+		memLimit, _ := resource.ParseQuantity("0")
+		cpuRequest, _ := resource.ParseQuantity("0")
+		memRequest, _ := resource.ParseQuantity("0")
 		for _, container := range pod.Spec.Containers {
 			if len(container.Resources.Limits) != 0 {
-				cpuLimit += container.Resources.Limits.Cpu().MilliValue()
-				memLimit += container.Resources.Limits.Memory().MilliValue()
+				cpuLimit.Add(*container.Resources.Limits.Cpu())
+				memLimit.Add(*container.Resources.Limits.Memory())
 			}
 			if len(container.Resources.Requests) != 0 {
-				cpuRequest += container.Resources.Requests.Cpu().MilliValue()
-				memRequest += container.Resources.Requests.Memory().MilliValue()
+				cpuRequest.Add(*container.Resources.Requests.Cpu())
+				memRequest.Add(*container.Resources.Requests.Memory())
 			}
 		}
 		limits[pod.Name] = resourceLimits{

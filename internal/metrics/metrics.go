@@ -18,6 +18,7 @@ package metrics
 import (
 	"log"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -37,10 +38,10 @@ type MetricsValues struct {
 	Name       string
 	CPUPercent float64
 	MemPercent float64
-	CPUCores   int
-	MemCores   int
-	CPULimit   int64
-	MemLimit   int64
+	CPUCores   resource.Quantity
+	MemCores   resource.Quantity
+	CPULimit   resource.Quantity
+	MemLimit   resource.Quantity
 
 	Namespace string
 	Node      string
