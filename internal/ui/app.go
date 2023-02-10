@@ -81,9 +81,11 @@ func (a App) Run() error {
 			}
 		}
 	}()
-	err := a.view.Run()
-	done <- true
-	return err
+	defer func() {
+		a.tick.Stop()
+		done <- true
+	}()
+	return a.view.Run()
 }
 
 func (a *App) move(i int) {
