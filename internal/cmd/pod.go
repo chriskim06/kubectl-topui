@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,12 +18,12 @@ package cmd
 import (
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 
-	"github.com/chriskim06/kubectl-ptop/internal/view"
+	"github.com/chriskim06/kubectl-ptop/internal/metrics"
+	"github.com/chriskim06/kubectl-ptop/internal/ui"
 )
 
 var (
@@ -44,18 +44,15 @@ CPU and memory percentages are calculated by getting the sum of the container
 limits/requests for a given pod.`),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-			if !isValidSortKey(podOpts.SortBy) {
-				return errors.New("Error: --sort-by can be either 'cpu', 'memory', 'cpu-percent', or 'memory-percent'")
-			}
-			return view.Render(podOpts, flags, view.POD, interval)
+			app := ui.New(metrics.POD, interval, podOpts, flags)
+			return app.Run()
 		},
 	}
 )
 
 func init() {
 	podCmd.Flags().StringVarP(&podOpts.Selector, "selector", "l", podOpts.Selector, selectorHelpStr)
-	podCmd.Flags().StringVar(&podOpts.SortBy, "sort-by", podOpts.Selector, sortHelpStr)
-	podCmd.Flags().IntVar(&interval, "interval", 5, intervalHelpStr)
+	podCmd.Flags().IntVar(&interval, "interval", 3, intervalHelpStr)
 	flags.AddFlags(podCmd.Flags())
 	rootCmd.AddCommand(podCmd)
 }

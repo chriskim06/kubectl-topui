@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,10 +16,20 @@ limitations under the License.
 package metrics
 
 import (
+	"log"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"
+)
+
+type Resource string
+
+const (
+	POD  Resource = "PODS"
+	NODE Resource = "NODES"
 )
 
 // MetricsValues is an object containing the cpu/memory resources for
@@ -28,8 +38,36 @@ type MetricsValues struct {
 	Name       string
 	CPUPercent float64
 	MemPercent float64
-	CPUCores   int
-	MemCores   int
+	CPUCores   resource.Quantity
+	MemCores   resource.Quantity
+	CPULimit   resource.Quantity
+	MemLimit   resource.Quantity
+
+	Namespace string
+	Node      string
+	Status    string
+	Age       string
+	Restarts  int
+	Ready     int
+	Total     int
+}
+
+type MetricsClient struct {
+	k     *kubernetes.Clientset
+	m     *metricsclientset.Clientset
+	flags *genericclioptions.ConfigFlags
+}
+
+func New(flags *genericclioptions.ConfigFlags) MetricsClient {
+	k, m, err := getClients(flags)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return MetricsClient{
+		k:     k,
+		m:     m,
+		flags: flags,
+	}
 }
 
 func getClients(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
@@ -37,16 +75,15 @@ func getClients(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *m
 	return clientSet, metricsClient, err
 }
 
-func getClientsAndNamespace(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, string, error) {
+func getNamespace(flags *genericclioptions.ConfigFlags) (string, error) {
 	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
 	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
 
 	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
-		return nil, nil, "", err
+		return "", err
 	}
-	clientSet, metricsClient, err := clientSets(flags)
-	return clientSet, metricsClient, namespace, err
+	return namespace, err
 }
 
 func clientSets(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {

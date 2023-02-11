@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,22 +22,18 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 	"k8s.io/kubectl/pkg/metricsutil"
 	metricsapi "k8s.io/metrics/pkg/apis/metrics"
 	metricsV1beta1api "k8s.io/metrics/pkg/apis/metrics/v1beta1"
+	"sigs.k8s.io/yaml"
 )
 
 // GetNodeMetrics returns a slice of objects that are meant to be easily
 // consumable by the various termui widgets
-func GetNodeMetrics(o *top.TopNodeOptions, flags *genericclioptions.ConfigFlags) ([]MetricsValues, error) {
-	clientset, metricsClient, err := getClients(flags)
-	if err != nil {
-		return nil, err
-	}
-	o.MetricsClient = metricsClient
-	o.NodeClient = clientset.CoreV1()
+func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricsValues, error) {
+	o.MetricsClient = m.m
+	o.NodeClient = m.k.CoreV1()
 	o.Printer = metricsutil.NewTopCmdPrinter(o.Out)
 
 	mc := o.MetricsClient.MetricsV1beta1()
@@ -79,8 +75,10 @@ func GetNodeMetrics(o *top.TopNodeOptions, flags *genericclioptions.ConfigFlags)
 			Name:       m.Name,
 			CPUPercent: cpuFraction,
 			MemPercent: memFraction,
-			CPUCores:   int(cpuQuantity.MilliValue()),
-			MemCores:   int(memQuantity.Value() / (1024 * 1024)),
+			CPUCores:   cpuQuantity,
+			MemCores:   memQuantity,
+			CPULimit:   cpuAvailable,
+			MemLimit:   memAvailable,
 		})
 	}
 
@@ -90,4 +88,16 @@ func GetNodeMetrics(o *top.TopNodeOptions, flags *genericclioptions.ConfigFlags)
 	})
 
 	return values, nil
+}
+
+func (m MetricsClient) GetNode(name string) (string, error) {
+	node, err := m.k.CoreV1().Nodes().Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	s, err := yaml.Marshal(node)
+	if err != nil {
+		return "", err
+	}
+	return string(s), nil
 }
