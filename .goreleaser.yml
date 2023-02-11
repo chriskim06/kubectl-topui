@@ -1,3 +1,6 @@
+before:
+  hooks:
+  - go mod download
 builds:
 - id: kubectl-ptop
   env:
