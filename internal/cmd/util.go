@@ -21,12 +21,14 @@ import (
 
 const (
 	selectorHelpStr   = "Selector (label query) to filter on, supports '=', '==', and '!=' (e.g. -l key1=value1,key2=value2)."
-	intervalHelpStr   = "The interval in seconds between getting metrics (defaults to 5)."
+	intervalHelpStr   = "The interval in seconds between getting metrics (defaults to 3)."
 	keyboardShortcuts = `
 Keyboard Shortcuts:
   - q: quit
   - j: scroll down
-  - k: scroll up`
+  - k: scroll up
+  - ?: display help modal
+  - enter: view spec for selected item`
 )
 
 func addKeyboardShortcutsToDescription(usage string) string {
