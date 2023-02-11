@@ -38,10 +38,10 @@ var (
 		Use:     "pod",
 		Aliases: []string{"pods"},
 		Short:   "Show pod metrics",
-		Long: addKeyboardShortcutsToDescription(`Show various widgets for pod metrics.
+		Long: addKeyboardShortcutsToDescription(`Show pod metrics.
 
 CPU and memory percentages are calculated by getting the sum of the container
-limits/requests for a given pod.`),
+limits for a given pod.`),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 			app := ui.New(metrics.POD, interval, podOpts, flags)

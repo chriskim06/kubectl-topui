@@ -33,9 +33,8 @@ var (
 		Short: "Prettier kubectl top output",
 		Long: addKeyboardShortcutsToDescription(`Render kubectl top output with fancier widgets!
 
-This shows separate lists of gauges for the CPU and memory. It also has a panel
-that displays the CPU and memory percentage graphs for the lifespan of the
-command invocation. The standard top output is also displayed.`),
+This shows standard top output along with a graph showing cpu and memory utilization for
+the currently selected pod or node. You can also view the selected pod or node spec.`),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
