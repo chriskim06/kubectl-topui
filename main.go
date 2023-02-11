@@ -15,7 +15,10 @@ limitations under the License.
 */
 package main
 
-import "github.com/chriskim06/kubectl-ptop/internal/cmd"
+import (
+	"github.com/chriskim06/kubectl-ptop/internal/cmd"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+)
 
 func main() {
 	cmd.Execute()
