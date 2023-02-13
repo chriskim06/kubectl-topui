@@ -69,15 +69,15 @@ func fmtStr(m metrics.MetricsValues, resource metrics.Resource) string {
 	}
 }
 
-func NewPlot() *tvxwidgets.Plot {
+func NewPlot(limit, usage tcell.Color) *tvxwidgets.Plot {
 	plot := tvxwidgets.NewPlot()
 	plot.SetMarker(tvxwidgets.PlotMarkerBraille)
 	plot.SetTitleAlign(tview.AlignLeft)
 	plot.SetBorder(true)
 	plot.SetBorderPadding(1, 1, 1, 1)
 	plot.SetLineColor([]tcell.Color{
-		tcell.ColorRed,
-		tcell.ColorDarkCyan,
+		limit,
+		usage,
 	})
 	return plot
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chriskim06/kubectl-ptop/internal/config"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
 	"github.com/gdamore/tcell/v2"
 	"github.com/navidys/tvxwidgets"
@@ -18,6 +19,7 @@ const helpPageName = "Help"
 
 type App struct {
 	client   metrics.MetricsClient
+	conf     config.Colors
 	data     []metrics.MetricsValues
 	cpuData  map[string][][]float64
 	memData  map[string][][]float64
@@ -36,18 +38,20 @@ type App struct {
 }
 
 func New(resource metrics.Resource, interval int, options interface{}, flags *genericclioptions.ConfigFlags) *App {
+	conf := config.GetTheme()
 	info := tview.NewTextView().SetWrap(true)
 	info.SetBorder(true)
 	info.SetTitleAlign(tview.AlignLeft)
 	app := &App{
 		client:   metrics.New(flags),
+		conf:     conf,
 		resource: resource,
 		options:  options,
 		items:    tview.NewList().ShowSecondaryText(false),
 		header:   tview.NewTextView().SetTextAlign(tview.AlignLeft).SetTextStyle(tcell.StyleDefault.Bold(true)),
 		info:     info,
-		cpu:      NewPlot(),
-		mem:      NewPlot(),
+		cpu:      NewPlot(conf.CPULimit.Color(), conf.CPUUsage.Color()),
+		mem:      NewPlot(conf.MemLimit.Color(), conf.MemUsage.Color()),
 		cpuData:  map[string][][]float64{},
 		memData:  map[string][][]float64{},
 		view:     tview.NewApplication(),
@@ -161,7 +165,7 @@ func (a *App) init() {
 		AddItem(a.info, 1, 4, 1, 2, 0, 0, false)
 
 	help := tview.NewTextView()
-	help.SetTextAlign(tview.AlignLeft).SetBorder(true).SetBorderColor(tcell.ColorPink).SetBorderPadding(1, 1, 1, 1).SetTitle(helpPageName).SetTitleAlign(tview.AlignLeft)
+	help.SetTextAlign(tview.AlignLeft).SetBorder(true).SetBorderColor(a.conf.Selected.Color()).SetBorderPadding(1, 1, 1, 1).SetTitle(helpPageName).SetTitleAlign(tview.AlignLeft)
 	help.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape || event.Rune() == 'q' || event.Rune() == '?' {
 			a.pages.HidePage(helpPageName)
@@ -182,7 +186,7 @@ func (a *App) init() {
 
 func (a *App) initInfo() {
 	a.info.SetFocusFunc(func() {
-		a.info.SetBorderColor(tcell.ColorPink)
+		a.info.SetBorderColor(a.conf.Selected.Color())
 	})
 	a.info.SetBlurFunc(func() {
 		a.info.SetBorderColor(tcell.ColorWhite)
@@ -215,7 +219,7 @@ func (a *App) initInfo() {
 
 func (a *App) initItems() {
 	a.items.SetFocusFunc(func() {
-		a.frame.SetBorderColor(tcell.ColorPink)
+		a.frame.SetBorderColor(a.conf.Selected.Color())
 	})
 	a.items.SetBlurFunc(func() {
 		a.frame.SetBorderColor(tcell.ColorWhite)

@@ -54,7 +54,6 @@ func (m MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, err
 	}
 	o.MetricsClient = m.m
 	o.PodClient = m.k.CoreV1()
-	o.Printer = metricsutil.NewTopCmdPrinter(o.Out)
 
 	versionedMetrics := &metricsv1beta1api.PodMetricsList{}
 	mc := o.MetricsClient.MetricsV1beta1()
