@@ -1,14 +1,12 @@
 package config
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
-	"sigs.k8s.io/yaml"
+	"github.com/spf13/viper"
 )
 
 const configPath = "~/.config/kubectl-ptop/config.yml"
@@ -57,33 +55,25 @@ type Colors struct {
 
 func initConfig() {
 	once.Do(func() {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			panic(err)
-		}
-		var f []byte
-		f, err = ioutil.ReadFile(filepath.Join(home, ".config", "kubectl-ptop", "config.yml"))
-		if err != nil {
-			panic(err)
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath("$HOME/.config/kubectl-ptop/")
+		viper.SetDefault("theme.selected", defaultSelected)
+		viper.SetDefault("theme.cpuLimit", defaultLimit)
+		viper.SetDefault("theme.cpuUsage", defaultUsage)
+		viper.SetDefault("theme.memLimit", defaultLimit)
+		viper.SetDefault("theme.memUsage", defaultUsage)
+		if err := viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+				// Config file not found use default
+				config = Config{Theme: defaultColors}
+				return
+			}
 		}
 		var c Config
-		if err := yaml.Unmarshal(f, &c); err != nil {
-			panic(err)
-		}
-		if c.Theme.Selected == "" {
-			c.Theme.Selected = defaultSelected
-		}
-		if c.Theme.CPULimit == "" {
-			c.Theme.CPULimit = defaultLimit
-		}
-		if c.Theme.CPUUsage == "" {
-			c.Theme.CPUUsage = defaultUsage
-		}
-		if c.Theme.MemLimit == "" {
-			c.Theme.MemLimit = defaultLimit
-		}
-		if c.Theme.MemUsage == "" {
-			c.Theme.MemUsage = defaultUsage
+		if err := viper.Unmarshal(&c); err != nil {
+			fmt.Println("unmarshal error", err)
+			return
 		}
 		config = c
 	})

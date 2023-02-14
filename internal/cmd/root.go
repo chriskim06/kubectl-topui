@@ -34,7 +34,18 @@ var (
 		Long: addKeyboardShortcutsToDescription(`Render kubectl top output with fancier widgets!
 
 This shows standard top output along with a graph showing cpu and memory utilization for
-the currently selected pod or node. You can also view the selected pod or node spec.`),
+the currently selected pod or node. You can also view the selected pod or node spec.
+
+A config file can be defined at ~/.config/kubectl-ptop/config.yml with the following structure:
+
+theme:
+  selected: color
+  cpuLimit: color
+  cpuUsage: color
+  memLimit: color
+  memUsage: color
+
+The color can be a lowercased color name corresponding to ANSI colors.`),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,

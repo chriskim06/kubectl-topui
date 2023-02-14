@@ -12,6 +12,7 @@ require (
 	github.com/navidys/tvxwidgets v0.3.0
 	github.com/rivo/tview v0.0.0-20230208211350-7dfff1ce7854
 	github.com/spf13/cobra v1.1.1
+	github.com/spf13/viper v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/net v0.4.0 // indirect
 	k8s.io/api v0.19.2
