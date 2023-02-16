@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.6.0
 	github.com/chriskim06/asciigraph v0.0.0-20230216145708-707e5e4c2e51
 	github.com/gdamore/tcell/v2 v2.5.4
+	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/rivo/uniseg v0.4.2 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.15.0

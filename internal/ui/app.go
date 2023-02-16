@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"log"
 	"strings"
 	"time"
 
@@ -11,6 +10,8 @@ import (
 	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-ptop/internal/config"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
+	"github.com/muesli/reflow/padding"
+	"github.com/muesli/reflow/wrap"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 )
@@ -30,6 +31,7 @@ type App struct {
 	interval  time.Duration
 	ready     bool
 	sizeReady bool
+	err       error
 
 	height       int
 	width        int
@@ -49,6 +51,8 @@ func New(resource metrics.Resource, interval int, options interface{}, flags *ge
 	if !lipgloss.HasDarkBackground() {
 		graphColor = asciigraph.Black
 	}
+	yamlPane := viewport.New(0, 0)
+	yamlPane.Style = lipgloss.NewStyle().Border(lipgloss.NormalBorder())
 	app := &App{
 		client:       metrics.New(flags),
 		conf:         conf,
@@ -60,12 +64,13 @@ func New(resource metrics.Resource, interval int, options interface{}, flags *ge
 		itemsFocused: true,
 		itemsPane:    *items,
 		graphsPane:   Graphs{conf: conf, graphColor: graphColor},
+		yamlPane:     yamlPane,
 	}
 	return app
 }
 
 func (a App) Init() tea.Cmd {
-	return a.tickCmd()
+	return a.immediateCmd()
 }
 
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -82,6 +87,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.itemsPane.content.SetHeight(msg.Height / 2)
 		a.graphsPane.Width = msg.Width
 		a.graphsPane.Height = msg.Height / 2
+		a.yamlPane = viewport.New((msg.Width/3)+1, msg.Height/2+2)
+		a.yamlPane.SetContent(strings.Repeat(" ", a.yamlPane.Width))
+		a.yamlPane.Style = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Height(a.yamlPane.Height).Width(a.yamlPane.Width)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "ctrl+c":
@@ -89,7 +97,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			if !a.itemsFocused {
 				a.itemsFocused = true
-				a.yamlPane.SetContent("")
+				a.yamlPane.SetContent(strings.Repeat(" ", a.yamlPane.Width))
 			} else {
 				return a, tea.Quit
 			}
@@ -104,23 +112,38 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					output, err = a.client.GetNode(a.current)
 				}
 				if err != nil {
-					a.yamlPane.SetContent(output)
-				} else {
-					a.yamlPane.SetContent(err.Error())
+					a.err = err
+					return a, tea.Quit
 				}
+				s := wrap.String(padding.String(output, uint(a.yamlPane.Width)), a.yamlPane.Width)
+				a.yamlPane.SetContent(s)
 			}
-		case "j", "k", "h", "l":
-			// figure out selected item and set it on items and graphs
-			if a.itemsFocused {
-				cmds = a.updatePanes(msg)
-			} else {
+		case "j", "k", "up", "down":
+			// figure out selected item and handle updating list cursor
+			if !a.itemsFocused {
 				a.yamlPane, cmd = a.yamlPane.Update(msg)
 				cmds = append(cmds, cmd)
+				break
 			}
+
+			a.itemsPane.content, cmd = a.itemsPane.content.Update(msg)
+			cmds = append(cmds, cmd)
+			a.setCurrent()
 		}
 	case tickMsg:
 		// update items and graphs
-		a.ready = true
+		if msg.err != nil {
+			a.err = msg.err
+			return a, tea.Quit
+		}
+		if !a.ready {
+			a.ready = true
+		}
+		if a.itemsPane.content.SelectedItem() != nil {
+			msg.name = a.itemsPane.GetSelected()
+		} else {
+			msg.name = msg.m[0].Name
+		}
 		cmds = append(cmds, a.updatePanes(msg)...)
 		cmds = append(cmds, a.tickCmd())
 	}
@@ -128,31 +151,34 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a *App) updatePanes(msg tea.Msg) []tea.Cmd {
-	var cmd tea.Cmd
 	cmds := []tea.Cmd{}
-	a.itemsPane, cmd = a.itemsPane.Update(msg)
-	cmds = append(cmds, cmd)
-	a.setCurrent()
-	a.graphsPane, cmd = a.graphsPane.Update(msg)
-	cmds = append(cmds, cmd)
-	return cmds
+	var itemsCmd, graphsCmd tea.Cmd
+	a.itemsPane, itemsCmd = a.itemsPane.Update(msg)
+	a.graphsPane, graphsCmd = a.graphsPane.Update(msg)
+	return append(cmds, itemsCmd, graphsCmd)
 }
 
 func (a App) View() string {
 	if !a.ready || !a.sizeReady {
 		return "Initializing..."
 	}
-	//     bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.yamlPane.View())
-	// return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), bottom)
-	//     graphs := lipgloss.NewStyle().Render(a.graphsPane.View())
-	return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), a.itemsPane.View())
+	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.yamlPane.View())
+	return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), bottom)
+	// return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), a.itemsPane.View())
 }
 
 type tickMsg struct {
 	m       []metrics.MetricsValues
 	name    string
-	cpuData [][]float64
-	memData [][]float64
+	err     error
+	cpuData map[string][][]float64
+	memData map[string][][]float64
+}
+
+func (a *App) immediateCmd() tea.Cmd {
+	return func() tea.Msg {
+		return a.update()
+	}
 }
 
 func (a *App) tickCmd() tea.Cmd {
@@ -170,8 +196,9 @@ func (a *App) update() tickMsg {
 		m, err = a.client.GetNodeMetrics(a.options.(*top.TopNodeOptions))
 	}
 	if err != nil {
-		log.Fatal(err)
+		return tickMsg{err: err}
 	}
+	a.data = m
 	for _, metric := range m {
 		name := metric.Name
 		a.graphUpkeep(name)
@@ -180,15 +207,10 @@ func (a *App) update() tickMsg {
 		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit.Value()/(1024*1024)))
 		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores.Value()/(1024*1024)))
 	}
-	a.data = m
-	if a.current == "" {
-		a.current = m[0].Name
-		a.graphsPane.name = a.current
-	}
 	return tickMsg{
 		m:       m,
-		cpuData: a.cpuData[a.current],
-		memData: a.memData[a.current],
+		cpuData: a.cpuData,
+		memData: a.memData,
 	}
 }
 
@@ -213,14 +235,8 @@ func (a *App) graphUpkeep(name string) {
 }
 
 func (a *App) setCurrent() {
-	current := a.itemsPane.content.SelectedItem().(listItem)
-	sections := strings.Fields(string(current))
-	x := 0
-	if a.resource == metrics.POD {
-		x = 1
-	}
-	a.current = sections[x]
+	a.current = a.itemsPane.GetSelected()
 	a.graphsPane.name = a.current
-	a.graphsPane.cpuData = a.cpuData[a.current]
-	a.graphsPane.memData = a.memData[a.current]
+	a.graphsPane.cpuData = a.cpuData
+	a.graphsPane.memData = a.memData
 }

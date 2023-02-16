@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -88,4 +89,14 @@ func (l List) View() string {
 		style = style.BorderBackground(adaptive.GetBackground())
 	}
 	return lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Margin(0).Width(l.Width).Height(l.Height).Render(l.content.View())
+}
+
+func (l List) GetSelected() string {
+	current := l.content.SelectedItem().(listItem)
+	sections := strings.Fields(string(current))
+	x := 0
+	if l.resource == metrics.POD {
+		x = 1
+	}
+	return sections[x]
 }

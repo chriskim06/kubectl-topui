@@ -16,8 +16,8 @@ type Graphs struct {
 	conf       config.Colors
 	graphColor asciigraph.AnsiColor
 	name       string
-	cpuData    [][]float64
-	memData    [][]float64
+	cpuData    map[string][][]float64
+	memData    map[string][][]float64
 }
 
 func (g Graphs) Init() tea.Cmd {
@@ -29,6 +29,7 @@ func (g *Graphs) Update(msg tea.Msg) (Graphs, tea.Cmd) {
 	case tea.KeyMsg:
 		// nothing
 	case tickMsg:
+		g.name = msg.name
 		g.cpuData = msg.cpuData
 		g.memData = msg.memData
 	}
@@ -38,7 +39,7 @@ func (g *Graphs) Update(msg tea.Msg) (Graphs, tea.Cmd) {
 func (g Graphs) View() string {
 	var cpuMax, memMax float64
 	cpuMin, memMin := math.MaxFloat64, math.MaxFloat64
-	for _, metrics := range g.cpuData {
+	for _, metrics := range g.cpuData[g.name] {
 		for _, value := range metrics {
 			if value < cpuMin {
 				cpuMin = value
@@ -48,7 +49,7 @@ func (g Graphs) View() string {
 			}
 		}
 	}
-	for _, metrics := range g.memData {
+	for _, metrics := range g.memData[g.name] {
 		for _, value := range metrics {
 			if value < memMin {
 				memMin = value
@@ -60,8 +61,8 @@ func (g Graphs) View() string {
 	}
 	cpuColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.CPULimit)], asciigraph.ColorNames[string(g.conf.CPUUsage)])
 	memColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.MemLimit)], asciigraph.ColorNames[string(g.conf.MemUsage)])
-	cpuPlot := g.plot(g.cpuData, "CPU", asciigraph.Min(cpuMin), asciigraph.Max(cpuMax), cpuColors)
-	memPlot := g.plot(g.memData, "MEM", asciigraph.Min(memMin), asciigraph.Max(memMax), memColors)
+	cpuPlot := g.plot(g.cpuData[g.name], "CPU", asciigraph.Min(cpuMin), asciigraph.Max(cpuMax), cpuColors)
+	memPlot := g.plot(g.memData[g.name], "MEM", asciigraph.Min(memMin), asciigraph.Max(memMax), memColors)
 	style := lipgloss.NewStyle().Align(lipgloss.Top).BorderStyle(lipgloss.NormalBorder()).BorderBackground(adaptive.GetBackground()).Width(g.Width/2 - 2).Height(g.Height - 6)
 	return lipgloss.JoinHorizontal(lipgloss.Top, style.Render(cpuPlot), style.Render(memPlot))
 }
