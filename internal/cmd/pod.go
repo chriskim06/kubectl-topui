@@ -18,6 +18,7 @@ package cmd
 import (
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
@@ -45,7 +46,8 @@ limits for a given pod.`),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 			app := ui.New(metrics.POD, interval, podOpts, flags)
-			return app.Run()
+			_, err := tea.NewProgram(app, tea.WithAltScreen()).Run()
+			return err
 		},
 	}
 )

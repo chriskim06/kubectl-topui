@@ -3,18 +3,14 @@ module github.com/chriskim06/kubectl-ptop
 go 1.15
 
 require (
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/charmbracelet/bubbles v0.15.0
+	github.com/charmbracelet/bubbletea v0.23.2
+	github.com/charmbracelet/lipgloss v0.6.0
+	github.com/chriskim06/asciigraph v0.0.0-20230216145708-707e5e4c2e51
 	github.com/gdamore/tcell/v2 v2.5.4
-	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/kr/pretty v0.3.0 // indirect
-	github.com/navidys/tvxwidgets v0.3.0
-	github.com/rivo/tview v0.0.0-20230208211350-7dfff1ce7854
+	github.com/rivo/uniseg v0.4.2 // indirect
 	github.com/spf13/cobra v1.1.1
-	github.com/spf13/viper v1.15.0 // indirect
-	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
-	golang.org/x/net v0.4.0 // indirect
+	github.com/spf13/viper v1.15.0
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
 	k8s.io/cli-runtime v0.19.2

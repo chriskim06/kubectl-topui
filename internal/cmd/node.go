@@ -18,6 +18,7 @@ package cmd
 import (
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
 	"github.com/chriskim06/kubectl-ptop/internal/ui"
 	"github.com/spf13/cobra"
@@ -40,7 +41,10 @@ var (
 		Long:    addKeyboardShortcutsToDescription("Show various widgets for node metrics."),
 		RunE: func(_ *cobra.Command, args []string) error {
 			app := ui.New(metrics.NODE, interval, nodeOpts, flags)
-			return app.Run()
+			p := tea.NewProgram(app)
+			p.EnterAltScreen()
+			_, err := p.Run()
+			return err
 		},
 	}
 )

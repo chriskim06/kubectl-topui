@@ -7,9 +7,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
-	"github.com/gdamore/tcell/v2"
-	"github.com/navidys/tvxwidgets"
-	"github.com/rivo/tview"
 )
 
 const helpText = `This app shows metrics for pods and nodes! The graphs display the limit and usage for the cpu and memory of whichever item is selected.
@@ -67,17 +64,4 @@ func fmtStr(m metrics.MetricsValues, resource metrics.Resource) string {
 			m.MemPercent,
 		)
 	}
-}
-
-func NewPlot(limit, usage tcell.Color) *tvxwidgets.Plot {
-	plot := tvxwidgets.NewPlot()
-	plot.SetMarker(tvxwidgets.PlotMarkerBraille)
-	plot.SetTitleAlign(tview.AlignLeft)
-	plot.SetBorder(true)
-	plot.SetBorderPadding(1, 1, 1, 1)
-	plot.SetLineColor([]tcell.Color{
-		limit,
-		usage,
-	})
-	return plot
 }
