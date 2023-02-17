@@ -27,10 +27,11 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		return
 	}
 
-	fn := adaptive.PaddingLeft(2).Bold(false).Render
+	a := adaptive.Copy()
+	fn := a.PaddingLeft(2).Bold(false).Render
 	if index == m.Index() {
 		fn = func(s string) string {
-			return adaptive.PaddingLeft(2).Bold(true).Render(s)
+			return a.Background(lipgloss.Color("245")).PaddingLeft(2).Bold(true).Render(s)
 		}
 	}
 

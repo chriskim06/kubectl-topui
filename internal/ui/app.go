@@ -140,13 +140,10 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a App) View() string {
+	// add something fancier like loading bar
 	if !a.ready || !a.sizeReady {
 		return "Initializing..."
 	}
-	//     items := lipgloss.NewStyle().Height(a.itemsPane.Height).Width(a.itemsPane.Width).Render(a.itemsPane.View())
-	//     yaml := lipgloss.NewStyle().Height(a.yamlPane.Height).Width(a.yamlPane.Width).Render(a.yamlPane.View())
-	//     bottom := lipgloss.JoinHorizontal(lipgloss.Top, items, yaml)
-	//     bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.yamlPane.View())
 	yaml := lipgloss.NewStyle().Height(a.yamlPane.Height).Width(a.yamlPane.Width).Render(a.yamlPane.View())
 	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), yaml)
 	return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), bottom)
