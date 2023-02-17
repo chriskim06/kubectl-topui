@@ -80,3 +80,8 @@ func (g Graphs) plot(data [][]float64, caption string, o ...asciigraph.Option) s
 	options = append(options, o...)
 	return asciigraph.PlotMany(data, options...)
 }
+
+func (g *Graphs) SetSize(width, height int) {
+	g.Width = width
+	g.Height = height
+}

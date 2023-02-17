@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-ptop/internal/config"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
 )
@@ -54,6 +55,7 @@ func NewList(resource metrics.Resource, conf config.Colors) *List {
 		resource: resource,
 		conf:     conf,
 		content:  list.New([]list.Item{}, itemDelegate{}, 0, 0),
+		focused:  true,
 	}
 }
 
@@ -84,11 +86,25 @@ func (l List) Update(msg tea.Msg) (List, tea.Cmd) {
 func (l List) View() string {
 	style := lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder())
 	if l.focused {
-		style = style.BorderBackground(lipgloss.Color(l.conf.Selected))
+		style = style.BorderForeground(lcolor(string(l.conf.Selected)))
 	} else {
-		style = style.BorderBackground(adaptive.GetBackground())
+		style = style.BorderForeground(adaptive.GetForeground())
 	}
-	return lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Margin(0).Width(l.Width).Height(l.Height).Render(l.content.View())
+	return style.Width(l.Width).Height(l.Height).Render(l.content.View())
+}
+
+func lcolor(s string) lipgloss.Color {
+	b, ok := asciigraph.ColorNames[s]
+	if !ok {
+		return adaptive.GetForeground().(lipgloss.Color)
+	}
+	return lipgloss.Color(fmt.Sprintf("%d", b))
+}
+
+func (l *List) SetSize(width, height int) {
+	l.Width = width
+	l.Height = height
+	l.content.SetSize(width, height)
 }
 
 func (l List) GetSelected() string {

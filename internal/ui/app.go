@@ -81,12 +81,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.sizeReady = true
 		a.width = msg.Width
 		a.height = msg.Height
-		a.itemsPane.Width = msg.Width * (2 / 3)
-		a.itemsPane.Height = msg.Height / 2
-		a.itemsPane.content.SetWidth(msg.Width * (2 / 3))
-		a.itemsPane.content.SetHeight(msg.Height / 2)
-		a.graphsPane.Width = msg.Width
-		a.graphsPane.Height = msg.Height / 2
+		a.itemsPane.SetSize(msg.Width*(2/3), msg.Height/2)
+		a.graphsPane.SetSize(msg.Width, msg.Height/2)
 		a.yamlPane = viewport.New((msg.Width/3)+1, msg.Height/2+2)
 		a.yamlPane.SetContent(strings.Repeat(" ", a.yamlPane.Width))
 		a.yamlPane.Style = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Height(a.yamlPane.Height).Width(a.yamlPane.Width)
@@ -97,19 +93,22 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			if !a.itemsFocused {
 				a.itemsFocused = true
+				a.itemsPane.focused = true
 				a.yamlPane.SetContent(strings.Repeat(" ", a.yamlPane.Width))
+				a.yamlPane.Style.BorderForeground(adaptive.GetForeground())
 			} else {
 				return a, tea.Quit
 			}
 		case "enter":
 			if a.itemsFocused {
 				a.itemsFocused = false
+				a.itemsPane.focused = false
 				var output string
 				var err error
 				if a.resource == metrics.POD {
-					output, err = a.client.GetPod(a.current)
+					output, err = a.client.GetPod(a.itemsPane.GetSelected())
 				} else {
-					output, err = a.client.GetNode(a.current)
+					output, err = a.client.GetNode(a.itemsPane.GetSelected())
 				}
 				if err != nil {
 					a.err = err
@@ -117,6 +116,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				s := wrap.String(padding.String(output, uint(a.yamlPane.Width)), a.yamlPane.Width)
 				a.yamlPane.SetContent(s)
+				a.yamlPane.Style.BorderForeground(lcolor(string(a.conf.Selected)))
 			}
 		case "j", "k", "up", "down":
 			// figure out selected item and handle updating list cursor
@@ -164,7 +164,6 @@ func (a App) View() string {
 	}
 	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.yamlPane.View())
 	return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), bottom)
-	// return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), a.itemsPane.View())
 }
 
 type tickMsg struct {
