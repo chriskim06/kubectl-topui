@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -33,6 +34,7 @@ type App struct {
 	itemsPane  List
 	graphsPane Graphs
 	yamlPane   viewport.Model
+	loading    *spinner.Model
 }
 
 func New(resource metrics.Resource, interval int, options interface{}, showManagedFields bool, flags *genericclioptions.ConfigFlags) *App {
@@ -45,6 +47,7 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 	if !lipgloss.HasDarkBackground() {
 		graphColor = asciigraph.Black
 	}
+	loading := spinner.New(spinner.WithSpinner(spinner.Dot))
 	app := &App{
 		client:     metrics.New(flags, showManagedFields),
 		conf:       conf,
@@ -55,12 +58,13 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 		interval:   time.Duration(interval) * time.Second,
 		itemsPane:  *items,
 		graphsPane: Graphs{conf: conf, graphColor: graphColor},
+		loading:    &loading,
 	}
 	return app
 }
 
 func (a App) Init() tea.Cmd {
-	return a.immediateCmd()
+	return tea.Batch(a.loading.Tick, a.immediateCmd())
 }
 
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -88,6 +92,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return a, tea.Quit
 			}
 		case "enter":
+			if !a.ready || !a.sizeReady {
+				return a, nil
+			}
 			if a.itemsPane.focused {
 				a.itemsPane.focused = false
 				var output string
@@ -106,6 +113,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.yamlPane.Style.BorderForeground(toColor(string(a.conf.Selected)))
 			}
 		case "j", "k", "up", "down":
+			if !a.ready || !a.sizeReady {
+				return a, nil
+			}
 			var cmd tea.Cmd
 			if !a.itemsPane.focused {
 				a.yamlPane, cmd = a.yamlPane.Update(msg)
@@ -135,14 +145,24 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.itemsPane, itemsCmd = a.itemsPane.Update(msg)
 		a.graphsPane, graphsCmd = a.graphsPane.Update(msg)
 		cmds = append(cmds, a.tickCmd(), itemsCmd, graphsCmd)
+	case spinner.TickMsg:
+		if a.ready && a.sizeReady {
+			return a, nil
+		}
+		return a.updateLoading(msg)
 	}
 	return a, tea.Batch(cmds...)
 }
 
+func (a *App) updateLoading(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	*a.loading, cmd = a.loading.Update(msg)
+	return a, cmd
+}
+
 func (a App) View() string {
-	// add something fancier like loading bar
 	if !a.ready || !a.sizeReady {
-		return "Initializing..."
+		return a.loading.View() + "Initializing..."
 	}
 	yaml := lipgloss.NewStyle().Height(a.yamlPane.Height).Width(a.yamlPane.Width).Render(a.yamlPane.View())
 	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), yaml)
