@@ -26,9 +26,10 @@ import (
 )
 
 var (
-	flags    = genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
-	interval = 3
-	rootCmd  = &cobra.Command{
+	flags             = genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
+	interval          = 3
+	showManagedFields = false
+	rootCmd           = &cobra.Command{
 		Use:   "ptop",
 		Short: "Prettier kubectl top output",
 		Long: addKeyboardShortcutsToDescription(`Render kubectl top output with fancier widgets!

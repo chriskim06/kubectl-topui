@@ -26,8 +26,6 @@ func (g Graphs) Init() tea.Cmd {
 
 func (g *Graphs) Update(msg tea.Msg) (Graphs, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		// nothing
 	case tickMsg:
 		g.name = msg.name
 		g.cpuData = msg.cpuData
@@ -63,7 +61,7 @@ func (g Graphs) View() string {
 	memColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.MemLimit)], asciigraph.ColorNames[string(g.conf.MemUsage)])
 	cpuPlot := g.plot(g.cpuData[g.name], "CPU", asciigraph.Min(cpuMin), asciigraph.Max(cpuMax), cpuColors)
 	memPlot := g.plot(g.memData[g.name], "MEM", asciigraph.Min(memMin), asciigraph.Max(memMax), memColors)
-	style := lipgloss.NewStyle().Align(lipgloss.Top).BorderStyle(lipgloss.NormalBorder()).BorderBackground(adaptive.GetBackground()).Width(g.Width/2 - 2).Height(g.Height - 6)
+	style := lipgloss.NewStyle().Align(lipgloss.Top).BorderStyle(lipgloss.NormalBorder()).BorderForeground(adaptive.GetForeground()).Width(g.Width/2 - 2).Height(g.Height - 6)
 	return lipgloss.JoinHorizontal(lipgloss.Top, style.Render(cpuPlot), style.Render(memPlot))
 }
 

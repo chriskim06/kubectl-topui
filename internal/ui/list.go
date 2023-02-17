@@ -8,12 +8,9 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-ptop/internal/config"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
 )
-
-var itemStyle = adaptive.PaddingLeft(2)
 
 type listItem string
 
@@ -30,10 +27,10 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		return
 	}
 
-	fn := itemStyle.Bold(false).Render
+	fn := adaptive.PaddingLeft(2).Bold(false).Render
 	if index == m.Index() {
 		fn = func(s string) string {
-			return itemStyle.Bold(true).Render(s)
+			return adaptive.PaddingLeft(2).Bold(true).Render(s)
 		}
 	}
 
@@ -46,7 +43,6 @@ type List struct {
 	focused  bool
 	conf     config.Colors
 	resource metrics.Resource
-	data     []metrics.MetricsValues
 	content  list.Model
 }
 
@@ -70,8 +66,7 @@ func (l List) Update(msg tea.Msg) (List, tea.Cmd) {
 		l.content, cmd = l.content.Update(msg)
 		return l, cmd
 	case tickMsg:
-		l.data = msg.m
-		header, items := tabStrings(l.data, l.resource)
+		header, items := tabStrings(msg.m, l.resource)
 		listItems := []list.Item{}
 		for _, item := range items {
 			listItems = append(listItems, listItem(item))
@@ -84,21 +79,13 @@ func (l List) Update(msg tea.Msg) (List, tea.Cmd) {
 }
 
 func (l List) View() string {
-	style := lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder())
+	var style lipgloss.Style
 	if l.focused {
-		style = style.BorderForeground(lcolor(string(l.conf.Selected)))
+		style = border.BorderForeground(toColor(string(l.conf.Selected)))
 	} else {
-		style = style.BorderForeground(adaptive.GetForeground())
+		style = border.BorderForeground(adaptive.GetForeground())
 	}
 	return style.Width(l.Width).Height(l.Height).Render(l.content.View())
-}
-
-func lcolor(s string) lipgloss.Color {
-	b, ok := asciigraph.ColorNames[s]
-	if !ok {
-		return adaptive.GetForeground().(lipgloss.Color)
-	}
-	return lipgloss.Color(fmt.Sprintf("%d", b))
 }
 
 func (l *List) SetSize(width, height int) {

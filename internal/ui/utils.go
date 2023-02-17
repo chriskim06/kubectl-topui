@@ -6,6 +6,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
 )
 
@@ -17,10 +19,14 @@ Keyboard Shortcuts
   - q: quit application or clear pod/node spec
   - ?: open/close this help menu`
 
-var headers = map[metrics.Resource]string{
-	metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tMEM USAGE\tMEM LIMIT\tRESTARTS\tAGE",
-	metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
-}
+var (
+	adaptive = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
+	border   = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder())
+	headers  = map[metrics.Resource]string{
+		metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tMEM USAGE\tMEM LIMIT\tRESTARTS\tAGE",
+		metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
+	}
+)
 
 func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string, []string) {
 	var b bytes.Buffer
@@ -64,4 +70,12 @@ func fmtStr(m metrics.MetricsValues, resource metrics.Resource) string {
 			m.MemPercent,
 		)
 	}
+}
+
+func toColor(s string) lipgloss.Color {
+	b, ok := asciigraph.ColorNames[s]
+	if !ok {
+		return adaptive.GetForeground().(lipgloss.Color)
+	}
+	return lipgloss.Color(fmt.Sprintf("%d", b))
 }

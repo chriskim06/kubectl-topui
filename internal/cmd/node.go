@@ -40,10 +40,8 @@ var (
 		Short:   "Show node metrics",
 		Long:    addKeyboardShortcutsToDescription("Show various widgets for node metrics."),
 		RunE: func(_ *cobra.Command, args []string) error {
-			app := ui.New(metrics.NODE, interval, nodeOpts, flags)
-			p := tea.NewProgram(app)
-			p.EnterAltScreen()
-			_, err := p.Run()
+			app := ui.New(metrics.NODE, interval, nodeOpts, showManagedFields, flags)
+			_, err := tea.NewProgram(app, tea.WithAltScreen()).Run()
 			return err
 		},
 	}
@@ -52,6 +50,7 @@ var (
 func init() {
 	nodeCmd.Flags().StringVarP(&nodeOpts.Selector, "selector", "l", nodeOpts.Selector, selectorHelpStr)
 	nodeCmd.Flags().IntVar(&interval, "interval", 3, intervalHelpStr)
+	nodeCmd.Flags().BoolVarP(&showManagedFields, "show-managed-fields", "m", false, showManagedFieldsHelpStr)
 	flags.AddFlags(nodeCmd.Flags())
 	rootCmd.AddCommand(nodeCmd)
 }

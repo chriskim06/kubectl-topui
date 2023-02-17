@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	selectorHelpStr   = "Selector (label query) to filter on, supports '=', '==', and '!=' (e.g. -l key1=value1,key2=value2)."
-	intervalHelpStr   = "The interval in seconds between getting metrics (defaults to 3)."
-	keyboardShortcuts = `
+	selectorHelpStr          = "Selector (label query) to filter on, supports '=', '==', and '!=' (e.g. -l key1=value1,key2=value2)."
+	intervalHelpStr          = "The interval in seconds between getting metrics (defaults to 3)."
+	showManagedFieldsHelpStr = "Display managed fields when viewing pod or node manifests."
+	keyboardShortcuts        = `
 Keyboard Shortcuts:
   - q: quit
   - j: scroll down

@@ -147,6 +147,9 @@ func (m MetricsClient) GetPod(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if !m.showManagedFields {
+		pod.ManagedFields = nil
+	}
 	s, err := yaml.Marshal(pod)
 	if err != nil {
 		return "", err

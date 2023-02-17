@@ -45,7 +45,7 @@ CPU and memory percentages are calculated by getting the sum of the container
 limits for a given pod.`),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-			app := ui.New(metrics.POD, interval, podOpts, flags)
+			app := ui.New(metrics.POD, interval, podOpts, showManagedFields, flags)
 			_, err := tea.NewProgram(app, tea.WithAltScreen()).Run()
 			return err
 		},
@@ -55,6 +55,7 @@ limits for a given pod.`),
 func init() {
 	podCmd.Flags().StringVarP(&podOpts.Selector, "selector", "l", podOpts.Selector, selectorHelpStr)
 	podCmd.Flags().IntVar(&interval, "interval", 3, intervalHelpStr)
+	podCmd.Flags().BoolVarP(&showManagedFields, "show-managed-fields", "m", false, showManagedFieldsHelpStr)
 	flags.AddFlags(podCmd.Flags())
 	rootCmd.AddCommand(podCmd)
 }

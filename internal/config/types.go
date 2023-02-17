@@ -5,7 +5,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/viper"
 )
 
@@ -39,10 +38,6 @@ func (c *ColorString) UnmarshalJSON(data []byte) error {
 	}
 	*c = ColorString(s)
 	return nil
-}
-
-func (c ColorString) Color() tcell.Color {
-	return tcell.GetColor(string(c))
 }
 
 type Colors struct {

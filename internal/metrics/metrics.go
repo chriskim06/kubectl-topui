@@ -56,9 +56,11 @@ type MetricsClient struct {
 	k     *kubernetes.Clientset
 	m     *metricsclientset.Clientset
 	flags *genericclioptions.ConfigFlags
+
+	showManagedFields bool
 }
 
-func New(flags *genericclioptions.ConfigFlags) MetricsClient {
+func New(flags *genericclioptions.ConfigFlags, showManagedFields bool) MetricsClient {
 	k, m, err := getClients(flags)
 	if err != nil {
 		log.Fatal(err)
@@ -67,6 +69,8 @@ func New(flags *genericclioptions.ConfigFlags) MetricsClient {
 		k:     k,
 		m:     m,
 		flags: flags,
+
+		showManagedFields: showManagedFields,
 	}
 }
 

@@ -95,6 +95,9 @@ func (m MetricsClient) GetNode(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if !m.showManagedFields {
+		node.ManagedFields = nil
+	}
 	s, err := yaml.Marshal(node)
 	if err != nil {
 		return "", err
