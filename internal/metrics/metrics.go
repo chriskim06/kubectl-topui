@@ -56,12 +56,19 @@ type MetricsClient struct {
 	k     *kubernetes.Clientset
 	m     *metricsclientset.Clientset
 	flags *genericclioptions.ConfigFlags
+	ns    string
 
 	showManagedFields bool
 }
 
 func New(flags *genericclioptions.ConfigFlags, showManagedFields bool) MetricsClient {
-	k, m, err := getClients(flags)
+	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
+	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
+	k, m, err := clientSets(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ns, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,34 +76,15 @@ func New(flags *genericclioptions.ConfigFlags, showManagedFields bool) MetricsCl
 		k:     k,
 		m:     m,
 		flags: flags,
+		ns:    ns,
 
 		showManagedFields: showManagedFields,
 	}
 }
 
-func getClients(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
-	clientSet, metricsClient, err := clientSets(flags)
-	return clientSet, metricsClient, err
-}
-
-func getNamespace(flags *genericclioptions.ConfigFlags) (string, error) {
-	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
-	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
-
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		return "", err
-	}
-	return namespace, err
-}
-
-func clientSets(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
-	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
-	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
-
+func clientSets(f cmdutil.Factory) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
 	var err error
 	config, err := f.ToRESTConfig()
-	flags.ToRESTConfig()
 	if err != nil {
 		return nil, nil, err
 	}

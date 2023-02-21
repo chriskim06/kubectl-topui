@@ -44,21 +44,18 @@ type resourceLimits struct {
 
 // GetPodMetrics returns a slice of objects that are meant to be easily
 // consumable by the various termui widgets
-func (m MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, error) {
-	ns, err := getNamespace(m.flags)
-	if err != nil {
-		return nil, err
-	}
-	if ns == "" {
-		ns = metav1.NamespaceAll
+func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, error) {
+	if m.ns == "" {
+		m.ns = metav1.NamespaceAll
 	}
 	o.MetricsClient = m.m
 	o.PodClient = m.k.CoreV1()
 
 	versionedMetrics := &metricsv1beta1api.PodMetricsList{}
 	mc := o.MetricsClient.MetricsV1beta1()
-	pm := mc.PodMetricses(ns)
+	pm := mc.PodMetricses(m.ns)
 
+	var err error
 	selector := labels.Everything()
 	if len(o.Selector) > 0 {
 		selector, err = labels.Parse(o.Selector)
@@ -95,7 +92,7 @@ func (m MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, err
 	}
 
 	// maybe loop through containers and sum the cpu/mem limits to calculate percentages
-	podList, err := o.PodClient.Pods(ns).List(context.TODO(), metav1.ListOptions{})
+	podList, err := o.PodClient.Pods(m.ns).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -103,27 +100,23 @@ func (m MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, err
 	for _, pod := range podList.Items {
 		podMapping[pod.Name] = pod
 	}
-	limits := getPodResourceLimits(podList.Items)
 
 	values := []MetricsValues{}
 	for _, item := range metrics.Items {
-		name := item.Name
+		pod := podMapping[item.Name]
 		podMetrics := getPodMetrics(&item)
-		cpuQuantity := podMetrics[v1.ResourceCPU]
-		cpuAvailable := limits[name].cpuLimit
-		memQuantity := podMetrics[v1.ResourceMemory]
-		memAvailable := limits[name].memLimit
-		ready, total, restarts := containerStatuses(podMapping[name].Status)
+		limits := getPodResourceLimits(pod)
+		ready, total, restarts := containerStatuses(pod.Status)
 		values = append(values, MetricsValues{
-			Name:      name,
-			CPUCores:  cpuQuantity,
-			MemCores:  memQuantity,
-			CPULimit:  cpuAvailable,
-			MemLimit:  memAvailable,
-			Namespace: podMapping[name].Namespace,
-			Node:      podMapping[name].Spec.NodeName,
-			Status:    string(podMapping[name].Status.Phase),
-			Age:       translateTimestampSince(podMapping[name].CreationTimestamp),
+			Name:      item.Name,
+			CPUCores:  podMetrics[v1.ResourceCPU],
+			MemCores:  podMetrics[v1.ResourceMemory],
+			CPULimit:  limits.cpuLimit,
+			MemLimit:  limits.memLimit,
+			Namespace: pod.Namespace,
+			Node:      pod.Spec.NodeName,
+			Status:    string(pod.Status.Phase),
+			Age:       translateTimestampSince(pod.CreationTimestamp),
 			Restarts:  restarts,
 			Ready:     ready,
 			Total:     total,
@@ -139,11 +132,7 @@ func (m MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, err
 }
 
 func (m MetricsClient) GetPod(name string) (string, error) {
-	ns, err := getNamespace(m.flags)
-	if err != nil {
-		return "", err
-	}
-	pod, err := m.k.CoreV1().Pods(ns).Get(context.Background(), name, metav1.GetOptions{})
+	pod, err := m.k.CoreV1().Pods(m.ns).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -235,29 +224,25 @@ func getPodMetrics(m *metricsapi.PodMetrics) v1.ResourceList {
 	return podMetrics
 }
 
-func getPodResourceLimits(pods []v1.Pod) map[string]resourceLimits {
-	limits := map[string]resourceLimits{}
-	for _, pod := range pods {
-		cpuLimit, _ := resource.ParseQuantity("0")
-		memLimit, _ := resource.ParseQuantity("0")
-		cpuRequest, _ := resource.ParseQuantity("0")
-		memRequest, _ := resource.ParseQuantity("0")
-		for _, container := range pod.Spec.Containers {
-			if len(container.Resources.Limits) != 0 {
-				cpuLimit.Add(*container.Resources.Limits.Cpu())
-				memLimit.Add(*container.Resources.Limits.Memory())
-			}
-			if len(container.Resources.Requests) != 0 {
-				cpuRequest.Add(*container.Resources.Requests.Cpu())
-				memRequest.Add(*container.Resources.Requests.Memory())
-			}
+func getPodResourceLimits(pod v1.Pod) resourceLimits {
+	cpuLimit, _ := resource.ParseQuantity("0")
+	memLimit, _ := resource.ParseQuantity("0")
+	cpuRequest, _ := resource.ParseQuantity("0")
+	memRequest, _ := resource.ParseQuantity("0")
+	for _, container := range pod.Spec.Containers {
+		if len(container.Resources.Limits) != 0 {
+			cpuLimit.Add(*container.Resources.Limits.Cpu())
+			memLimit.Add(*container.Resources.Limits.Memory())
 		}
-		limits[pod.Name] = resourceLimits{
-			cpuLimit:   cpuLimit,
-			memLimit:   memLimit,
-			cpuRequest: cpuRequest,
-			memRequest: memRequest,
+		if len(container.Resources.Requests) != 0 {
+			cpuRequest.Add(*container.Resources.Requests.Cpu())
+			memRequest.Add(*container.Resources.Requests.Memory())
 		}
 	}
-	return limits
+	return resourceLimits{
+		cpuLimit:   cpuLimit,
+		memLimit:   memLimit,
+		cpuRequest: cpuRequest,
+		memRequest: memRequest,
+	}
 }

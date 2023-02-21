@@ -36,10 +36,10 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 	}
 	line = truncate.StringWithTail(line, uint(m.Width()), "…")
 	a := adaptive.Copy()
-	fn := a.PaddingLeft(2).Bold(false).Render
+	fn := a.Bold(false).Render
 	if index == m.Index() {
 		fn = func(s string) string {
-			return a.Background(lipgloss.Color("245")).PaddingLeft(2).Bold(true).Render(s)
+			return a.Background(lipgloss.Color("245")).Bold(true).Render(s)
 		}
 	}
 
@@ -62,6 +62,8 @@ func NewList(resource metrics.Resource, conf config.Colors) *List {
 	itemList.SetFilteringEnabled(false)
 	itemList.SetShowFilter(false)
 	itemList.SetShowStatusBar(false)
+	itemList.Styles.Title = lipgloss.NewStyle().Bold(true).Padding(0)
+	itemList.Styles.TitleBar = lipgloss.NewStyle().Padding(0)
 	return &List{
 		resource: resource,
 		conf:     conf,
@@ -87,7 +89,6 @@ func (l List) Update(msg tea.Msg) (List, tea.Cmd) {
 			listItems = append(listItems, listItem(item))
 		}
 		l.content.Title = header
-		l.content.Styles.Title = lipgloss.NewStyle().Bold(true)
 		l.content.SetItems(listItems)
 	}
 	return l, nil
@@ -100,9 +101,10 @@ func (l List) View() string {
 	} else {
 		style = border.Copy().BorderForeground(adaptive.Copy().GetForeground())
 	}
-	style = style.Width(l.Width - 2).Height(l.Height - 2).MaxWidth(l.Width).MaxHeight(l.Height)
+	//     style = style.Width(l.Width - 2).Height(l.Height - 2).MaxWidth(l.Width).MaxHeight(l.Height)
+	style = style.Width(l.Width).Height(l.Height)
 	v, h := style.GetFrameSize()
-	l.content.SetSize(l.Width-h-6, l.Height-v-1)
+	l.content.SetSize(l.Width-h, l.Height-v)
 	return style.Render(l.content.View())
 }
 

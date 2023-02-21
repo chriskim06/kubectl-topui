@@ -76,7 +76,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		third := msg.Width / 3
 		half := msg.Height / 2
 		thirdRounded := third + (msg.Width % 3)
-		a.itemsPane.SetSize(msg.Width-third, half)
+		a.itemsPane.SetSize(msg.Width-thirdRounded, half)
 		a.graphsPane.SetSize(msg.Width, half)
 		a.yamlPane = viewport.New(thirdRounded, half)
 		a.yamlPane.SetContent(strings.Repeat(" ", a.yamlPane.Width-5))
@@ -151,15 +151,11 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.ready && a.sizeReady {
 			return a, nil
 		}
-		return a.updateLoading(msg)
+		var cmd tea.Cmd
+		*a.loading, cmd = a.loading.Update(msg)
+		return a, cmd
 	}
 	return a, tea.Batch(cmds...)
-}
-
-func (a *App) updateLoading(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	*a.loading, cmd = a.loading.Update(msg)
-	return a, cmd
 }
 
 func (a App) View() string {
