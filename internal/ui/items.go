@@ -33,17 +33,13 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		line = ""
 	} else {
 		line = line[m.GetOffset():]
+		line = truncate.StringWithTail(line, uint(m.Width()), "…")
 	}
-	line = truncate.StringWithTail(line, uint(m.Width()), "…")
-	a := adaptive.Copy()
-	fn := a.Bold(false).Render
 	if index == m.Index() {
-		fn = func(s string) string {
-			return a.Background(lipgloss.Color("245")).Bold(true).Render(s)
-		}
+		fmt.Fprintf(w, adaptive.Copy().Background(lipgloss.Color("245")).Bold(true).Render(line))
+	} else {
+		fmt.Fprintf(w, adaptive.Copy().Render(line))
 	}
-
-	fmt.Fprint(w, fn(line))
 }
 
 type List struct {
@@ -58,11 +54,6 @@ type List struct {
 
 func NewList(resource metrics.Resource, conf config.Colors) *List {
 	itemList := list.New([]list.Item{}, itemDelegate{}, 0, 0)
-	itemList.SetShowPagination(true)
-	itemList.SetShowHelp(false)
-	itemList.SetFilteringEnabled(false)
-	itemList.SetShowFilter(false)
-	itemList.SetShowStatusBar(false)
 	itemList.Styles.Title = lipgloss.NewStyle().Bold(true).Padding(0)
 	itemList.Styles.TitleBar = lipgloss.NewStyle().Padding(0)
 	return &List{

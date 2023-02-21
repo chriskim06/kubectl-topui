@@ -25,7 +25,7 @@ type Info struct {
 func NewInfo(conf config.Colors) *Info {
 	return &Info{
 		conf:    conf,
-		style:   border.Copy(),
+		style:   border.Copy().Padding(0),
 		content: viewport.New(0, 0),
 	}
 }

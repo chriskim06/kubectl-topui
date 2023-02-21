@@ -71,9 +71,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.sizeReady = true
 		a.height = msg.Height
 		a.width = msg.Width
-		third := msg.Width / 3
 		half := msg.Height / 2
-		thirdRounded := third + (msg.Width % 3)
+		thirdRounded := (msg.Width / 3) + (msg.Width % 3)
 		a.graphsPane.SetSize(msg.Width, half)
 		a.itemsPane.SetSize(msg.Width-thirdRounded-5, half)
 		a.infoPane.SetSize(thirdRounded, half)
@@ -127,13 +126,11 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.graphsPane.updateData(a.current, a.cpuData, a.memData)
 		}
 	case tickMsg:
-		// update items and graphs
 		if msg.err != nil {
 			a.err = msg.err
 			return a, nil
 		}
 		a.ready = true
-		msg.name = msg.m[0].Name
 		if a.itemsPane.content.SelectedItem() != nil {
 			msg.name = a.itemsPane.GetSelected()
 		}
@@ -205,6 +202,7 @@ func (a *App) updateData() tea.Msg {
 	}
 	return tickMsg{
 		m:       m,
+		name:    m[0].Name,
 		cpuData: a.cpuData,
 		memData: a.memData,
 	}
