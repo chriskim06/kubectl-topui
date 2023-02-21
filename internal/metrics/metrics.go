@@ -32,9 +32,9 @@ const (
 	NODE Resource = "NODES"
 )
 
-// MetricsValues is an object containing the cpu/memory resources for
+// MetricValue is an object containing the cpu/memory resources for
 // a pod/node that is used to populate termui widgets
-type MetricsValues struct {
+type MetricValue struct {
 	Name       string
 	CPUPercent float64
 	MemPercent float64

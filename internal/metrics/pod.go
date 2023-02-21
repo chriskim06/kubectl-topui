@@ -44,7 +44,7 @@ type resourceLimits struct {
 
 // GetPodMetrics returns a slice of objects that are meant to be easily
 // consumable by the various termui widgets
-func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, error) {
+func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, error) {
 	if m.ns == "" {
 		m.ns = metav1.NamespaceAll
 	}
@@ -101,13 +101,13 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricsValues, er
 		podMapping[pod.Name] = pod
 	}
 
-	values := []MetricsValues{}
+	values := []MetricValue{}
 	for _, item := range metrics.Items {
 		pod := podMapping[item.Name]
 		podMetrics := getPodMetrics(&item)
 		limits := getPodResourceLimits(pod)
 		ready, total, restarts := containerStatuses(pod.Status)
-		values = append(values, MetricsValues{
+		values = append(values, MetricValue{
 			Name:      item.Name,
 			CPUCores:  podMetrics[v1.ResourceCPU],
 			MemCores:  podMetrics[v1.ResourceMemory],

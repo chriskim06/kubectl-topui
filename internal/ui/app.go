@@ -16,7 +16,7 @@ import (
 type App struct {
 	client     metrics.MetricsClient
 	conf       config.Colors
-	data       []metrics.MetricsValues
+	data       []metrics.MetricValue
 	cpuData    map[string][][]float64
 	memData    map[string][][]float64
 	resource   metrics.Resource
@@ -157,7 +157,7 @@ func (a App) View() string {
 }
 
 type tickMsg struct {
-	m       []metrics.MetricsValues
+	m       []metrics.MetricValue
 	name    string
 	err     error
 	cpuData map[string][][]float64
@@ -172,7 +172,7 @@ func (a *App) tickCmd() tea.Cmd {
 
 func (a *App) updateData() tea.Msg {
 	var err error
-	var m []metrics.MetricsValues
+	var m []metrics.MetricValue
 	if a.resource == metrics.POD {
 		m, err = a.client.GetPodMetrics(a.options.(*top.TopPodOptions))
 	} else {

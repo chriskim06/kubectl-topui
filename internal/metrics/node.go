@@ -31,7 +31,7 @@ import (
 
 // GetNodeMetrics returns a slice of objects that are meant to be easily
 // consumable by the various termui widgets
-func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricsValues, error) {
+func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricValue, error) {
 	o.MetricsClient = m.m
 	o.NodeClient = m.k.CoreV1()
 	o.Printer = metricsutil.NewTopCmdPrinter(o.Out)
@@ -63,7 +63,7 @@ func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricsValues, e
 		allocatable[n.Name] = n.Status.Allocatable
 	}
 
-	values := []MetricsValues{}
+	values := []MetricValue{}
 	for _, m := range metrics.Items {
 		cpuQuantity := m.Usage[v1.ResourceCPU]
 		cpuAvailable := allocatable[m.Name][v1.ResourceCPU]
@@ -71,7 +71,7 @@ func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricsValues, e
 		memQuantity := m.Usage[v1.ResourceMemory]
 		memAvailable := allocatable[m.Name][v1.ResourceMemory]
 		memFraction := float64(memQuantity.MilliValue()) / float64(memAvailable.MilliValue()) * 100
-		values = append(values, MetricsValues{
+		values = append(values, MetricValue{
 			Name:       m.Name,
 			CPUPercent: cpuFraction,
 			MemPercent: memFraction,

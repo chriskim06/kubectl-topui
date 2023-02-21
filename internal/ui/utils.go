@@ -28,7 +28,7 @@ var (
 	}
 )
 
-func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string, []string) {
+func tabStrings(data []metrics.MetricValue, resource metrics.Resource) (string, []string) {
 	var b bytes.Buffer
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, headers[resource])
@@ -42,7 +42,7 @@ func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string
 	return header, items
 }
 
-func fmtStr(m metrics.MetricsValues, resource metrics.Resource) string {
+func fmtStr(m metrics.MetricValue, resource metrics.Resource) string {
 	if resource == metrics.POD {
 		return fmt.Sprintf(
 			"%s\t%s\t%s\t%s\t%s\t%vm\t%vm\t%vMi\t%vMi\t%d\t%s",
