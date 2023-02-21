@@ -1141,9 +1141,9 @@ func (m Model) statusView() string {
 }
 
 func (m Model) paginationView() string {
-	//     if m.Paginator.TotalPages < 2 { //nolint:gomnd
-	//         return ""
-	//     }
+	if m.Paginator.TotalPages < 2 { //nolint:gomnd
+		return ""
+	}
 
 	s := m.Paginator.View()
 

@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"bytes"
+
+	"github.com/alecthomas/chroma/quick"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -20,8 +23,9 @@ type Info struct {
 
 func NewInfo(conf config.Colors) *Info {
 	return &Info{
-		conf:  conf,
-		style: border.Copy(),
+		conf:    conf,
+		style:   border.Copy(),
+		content: viewport.New(0, 0),
 	}
 }
 
@@ -50,8 +54,15 @@ func (i Info) View() string {
 
 func (i *Info) SetContent(s string) {
 	v, h := i.style.GetFrameSize()
-	i.content = viewport.New(i.Width-h, i.Height-v)
-	i.content.SetContent(wrap.String(padding.String(s, uint(i.Width-h)), i.Width-h))
+	i.content.Width = i.Width - h
+	i.content.Height = i.Height - v
+	content := wrap.String(padding.String(s, uint(i.content.Width)), i.content.Width)
+	var b bytes.Buffer
+	if err := quick.Highlight(&b, content, "yaml", "terminal256", "friendly"); err == nil {
+		i.content.SetContent(b.String())
+	} else {
+		i.content.SetContent(content)
+	}
 }
 
 func (i *Info) SetSize(width, height int) {

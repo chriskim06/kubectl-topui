@@ -31,30 +31,7 @@ func (g Graphs) Init() tea.Cmd {
 func (g *Graphs) Update(msg tea.Msg) (Graphs, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tickMsg:
-		g.name = msg.name
-		g.cpuData = msg.cpuData
-		g.memData = msg.memData
-		g.cpuMin, g.memMin = math.MaxFloat64, math.MaxFloat64
-		for _, metrics := range g.cpuData[g.name] {
-			for _, value := range metrics {
-				if value < g.cpuMin {
-					g.cpuMin = value
-				}
-				if value > g.cpuMax {
-					g.cpuMax = value
-				}
-			}
-		}
-		for _, metrics := range g.memData[g.name] {
-			for _, value := range metrics {
-				if value < g.memMin {
-					g.memMin = value
-				}
-				if value > g.memMax {
-					g.memMax = value
-				}
-			}
-		}
+		g.updateData(msg.name, msg.cpuData, msg.memData)
 	}
 	return *g, nil
 }
@@ -64,14 +41,41 @@ func (g Graphs) View() string {
 	memColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.MemLimit)], asciigraph.ColorNames[string(g.conf.MemUsage)])
 	cpuPlot := g.plot(g.cpuData[g.name], "CPU", asciigraph.Min(g.cpuMin), asciigraph.Max(g.cpuMax), cpuColors)
 	memPlot := g.plot(g.memData[g.name], "MEM", asciigraph.Min(g.memMin), asciigraph.Max(g.memMax), memColors)
-	style := lipgloss.NewStyle().
+	style := border.Copy().
 		Align(lipgloss.Top).
-		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(adaptive.Copy().GetForeground()).
 		MaxWidth(g.Width / 2).
 		MaxHeight(g.Height).
 		Width(g.Width/2 - 2)
 	return lipgloss.JoinHorizontal(lipgloss.Top, style.Render(cpuPlot), style.Render(memPlot))
+}
+
+func (g *Graphs) updateData(name string, cpuData, memData map[string][][]float64) {
+	g.name = name
+	g.cpuData = cpuData
+	g.memData = memData
+	g.cpuMax, g.memMax = 0, 0
+	g.cpuMin, g.memMin = math.MaxFloat64, math.MaxFloat64
+	for _, metrics := range g.cpuData[g.name] {
+		for _, value := range metrics {
+			if value < g.cpuMin {
+				g.cpuMin = value
+			}
+			if value > g.cpuMax {
+				g.cpuMax = value
+			}
+		}
+	}
+	for _, metrics := range g.memData[g.name] {
+		for _, value := range metrics {
+			if value < g.memMin {
+				g.memMin = value
+			}
+			if value > g.memMax {
+				g.memMax = value
+			}
+		}
+	}
 }
 
 func (g Graphs) plot(data [][]float64, caption string, o ...asciigraph.Option) string {

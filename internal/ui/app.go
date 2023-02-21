@@ -60,10 +60,11 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 }
 
 func (a App) Init() tea.Cmd {
-	return tea.Batch(a.loading.Tick, a.immediateCmd())
+	return tea.Batch(a.loading.Tick, a.updateData)
 }
 
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -73,8 +74,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		third := msg.Width / 3
 		half := msg.Height / 2
 		thirdRounded := third + (msg.Width % 3)
-		a.itemsPane.SetSize(msg.Width-thirdRounded-5, half)
 		a.graphsPane.SetSize(msg.Width, half)
+		a.itemsPane.SetSize(msg.Width-thirdRounded-5, half)
 		a.infoPane.SetSize(thirdRounded, half)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
@@ -83,8 +84,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			if !a.itemsPane.focused {
 				a.itemsPane.focused = true
-				a.infoPane.SetContent("")
 				a.infoPane.focused = false
+				a.infoPane.SetContent("")
 			} else {
 				return a, tea.Quit
 			}
@@ -105,26 +106,22 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					a.err = err
 					return a, tea.Quit
 				}
-				a.infoPane.SetContent(output)
 				a.infoPane.focused = true
+				a.infoPane.SetContent(output)
 			}
 		case "j", "k", "h", "l", "up", "down", "left", "right":
 			if !a.ready || !a.sizeReady {
 				return a, nil
 			}
-			var cmd tea.Cmd
 			if !a.itemsPane.focused {
 				a.infoPane, cmd = a.infoPane.Update(msg)
-				cmds = append(cmds, cmd)
-				break
+				return a, cmd
 			}
 
 			a.itemsPane.content, cmd = a.itemsPane.content.Update(msg)
 			cmds = append(cmds, cmd)
 			a.current = a.itemsPane.GetSelected()
-			a.graphsPane.name = a.current
-			a.graphsPane.cpuData = a.cpuData
-			a.graphsPane.memData = a.memData
+			a.graphsPane.updateData(a.current, a.cpuData, a.memData)
 		}
 	case tickMsg:
 		// update items and graphs
@@ -145,7 +142,6 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.ready && a.sizeReady {
 			return a, nil
 		}
-		var cmd tea.Cmd
 		*a.loading, cmd = a.loading.Update(msg)
 		return a, cmd
 	}
@@ -168,19 +164,13 @@ type tickMsg struct {
 	memData map[string][][]float64
 }
 
-func (a *App) immediateCmd() tea.Cmd {
-	return func() tea.Msg {
-		return a.updateData()
-	}
-}
-
 func (a *App) tickCmd() tea.Cmd {
 	return tea.Tick(a.interval, func(t time.Time) tea.Msg {
 		return a.updateData()
 	})
 }
 
-func (a *App) updateData() tickMsg {
+func (a *App) updateData() tea.Msg {
 	var err error
 	var m []metrics.MetricsValues
 	if a.resource == metrics.POD {

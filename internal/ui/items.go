@@ -53,6 +53,7 @@ type List struct {
 	conf     config.Colors
 	resource metrics.Resource
 	content  list.Model
+	style    lipgloss.Style
 }
 
 func NewList(resource metrics.Resource, conf config.Colors) *List {
@@ -69,6 +70,7 @@ func NewList(resource metrics.Resource, conf config.Colors) *List {
 		conf:     conf,
 		content:  itemList,
 		focused:  true,
+		style:    border.Copy(),
 	}
 }
 
@@ -95,22 +97,20 @@ func (l List) Update(msg tea.Msg) (List, tea.Cmd) {
 }
 
 func (l List) View() string {
-	var style lipgloss.Style
 	if l.focused {
-		style = border.Copy().BorderForeground(toColor(string(l.conf.Selected)))
+		l.style.BorderForeground(toColor(string(l.conf.Selected)))
 	} else {
-		style = border.Copy().BorderForeground(adaptive.Copy().GetForeground())
+		l.style.BorderForeground(adaptive.Copy().GetForeground())
 	}
-	//     style = style.Width(l.Width - 2).Height(l.Height - 2).MaxWidth(l.Width).MaxHeight(l.Height)
-	style = style.Width(l.Width).Height(l.Height)
-	v, h := style.GetFrameSize()
+	v, h := l.style.GetFrameSize()
 	l.content.SetSize(l.Width-h, l.Height-v)
-	return style.Render(l.content.View())
+	return l.style.Render(l.content.View())
 }
 
 func (l *List) SetSize(width, height int) {
 	l.Width = width
 	l.Height = height
+	l.style = l.style.Width(l.Width).Height(l.Height)
 }
 
 func (l List) GetSelected() string {
