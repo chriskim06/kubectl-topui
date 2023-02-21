@@ -1,18 +1,14 @@
 package ui
 
 import (
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-ptop/internal/config"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
-	"github.com/muesli/reflow/padding"
-	"github.com/muesli/reflow/wrap"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 )
@@ -35,7 +31,7 @@ type App struct {
 	width      int
 	itemsPane  List
 	graphsPane Graphs
-	yamlPane   viewport.Model
+	infoPane   Info
 	loading    *spinner.Model
 }
 
@@ -57,6 +53,7 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 		interval:   time.Duration(interval) * time.Second,
 		itemsPane:  *items,
 		graphsPane: Graphs{conf: conf, graphColor: graphColor},
+		infoPane:   *NewInfo(conf),
 		loading:    &loading,
 	}
 	return app
@@ -76,11 +73,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		third := msg.Width / 3
 		half := msg.Height / 2
 		thirdRounded := third + (msg.Width % 3)
-		a.itemsPane.SetSize(msg.Width-thirdRounded, half)
+		a.itemsPane.SetSize(msg.Width-thirdRounded-5, half)
 		a.graphsPane.SetSize(msg.Width, half)
-		a.yamlPane = viewport.New(thirdRounded, half)
-		a.yamlPane.SetContent(strings.Repeat(" ", a.yamlPane.Width-5))
-		a.yamlPane.Style = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Width(thirdRounded).MaxWidth(thirdRounded).Height(half).MaxHeight(half)
+		a.infoPane.SetSize(thirdRounded, half)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "ctrl+c":
@@ -88,8 +83,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			if !a.itemsPane.focused {
 				a.itemsPane.focused = true
-				a.yamlPane.SetContent(strings.Repeat(" ", a.yamlPane.Width-5))
-				a.yamlPane.Style.BorderForeground(adaptive.Copy().GetForeground())
+				a.infoPane.SetContent("")
+				a.infoPane.focused = false
 			} else {
 				return a, tea.Quit
 			}
@@ -110,9 +105,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					a.err = err
 					return a, tea.Quit
 				}
-				s := wrap.String(padding.String(output, uint(a.yamlPane.Width-5)), a.yamlPane.Width-5)
-				a.yamlPane.SetContent(s)
-				a.yamlPane.Style.BorderForeground(toColor(string(a.conf.Selected)))
+				a.infoPane.SetContent(output)
+				a.infoPane.focused = true
 			}
 		case "j", "k", "h", "l", "up", "down", "left", "right":
 			if !a.ready || !a.sizeReady {
@@ -120,7 +114,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			var cmd tea.Cmd
 			if !a.itemsPane.focused {
-				a.yamlPane, cmd = a.yamlPane.Update(msg)
+				a.infoPane, cmd = a.infoPane.Update(msg)
 				cmds = append(cmds, cmd)
 				break
 			}
@@ -162,7 +156,7 @@ func (a App) View() string {
 	if !a.ready || !a.sizeReady {
 		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, a.loading.View()+"Initializing...")
 	}
-	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.yamlPane.View())
+	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.infoPane.View())
 	return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), bottom)
 }
 
