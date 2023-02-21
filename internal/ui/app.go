@@ -16,7 +16,6 @@ import (
 type App struct {
 	client     metrics.MetricsClient
 	conf       config.Colors
-	data       []metrics.MetricValue
 	cpuData    map[string][][]float64
 	memData    map[string][][]float64
 	resource   metrics.Resource
@@ -43,6 +42,7 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 		graphColor = asciigraph.Black
 	}
 	loading := spinner.New(spinner.WithSpinner(spinner.Dot))
+	graphs := NewGraphs(conf, graphColor)
 	app := &App{
 		client:     metrics.New(flags, showManagedFields),
 		conf:       conf,
@@ -52,7 +52,7 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 		memData:    map[string][][]float64{},
 		interval:   time.Duration(interval) * time.Second,
 		itemsPane:  *items,
-		graphsPane: Graphs{conf: conf, graphColor: graphColor},
+		graphsPane: *graphs,
 		infoPane:   *NewInfo(conf),
 		loading:    &loading,
 	}
@@ -82,6 +82,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return a, tea.Quit
 		case "q":
+			if a.err != nil {
+				return a, tea.Quit
+			}
 			if !a.itemsPane.focused {
 				a.itemsPane.focused = true
 				a.infoPane.focused = false
@@ -104,7 +107,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				if err != nil {
 					a.err = err
-					return a, tea.Quit
+					return a, nil
 				}
 				a.infoPane.focused = true
 				a.infoPane.SetContent(output)
@@ -127,7 +130,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// update items and graphs
 		if msg.err != nil {
 			a.err = msg.err
-			return a, tea.Quit
+			return a, nil
 		}
 		a.ready = true
 		msg.name = msg.m[0].Name
@@ -149,6 +152,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a App) View() string {
+	if a.err != nil {
+		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, errStyle.Width(a.width/2).Height(a.height/2).Render("ERROR:\n\n"+a.err.Error()))
+	}
 	if !a.ready || !a.sizeReady {
 		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, a.loading.View()+"Initializing...")
 	}
@@ -181,7 +187,6 @@ func (a *App) updateData() tea.Msg {
 	if err != nil {
 		return tickMsg{err: err}
 	}
-	a.data = m
 	for _, metric := range m {
 		name := metric.Name
 		if a.cpuData[name] == nil || a.memData[name] == nil {

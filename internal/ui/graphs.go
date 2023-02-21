@@ -22,6 +22,15 @@ type Graphs struct {
 	memMax     float64
 	cpuMin     float64
 	memMin     float64
+	style      lipgloss.Style
+}
+
+func NewGraphs(conf config.Colors, graphColor asciigraph.AnsiColor) *Graphs {
+	return &Graphs{
+		conf:       conf,
+		graphColor: graphColor,
+		style:      border.Copy().Align(lipgloss.Top).BorderForeground(adaptive.Copy().GetForeground()),
+	}
 }
 
 func (g Graphs) Init() tea.Cmd {
@@ -36,18 +45,16 @@ func (g *Graphs) Update(msg tea.Msg) (Graphs, tea.Cmd) {
 	return *g, nil
 }
 
-func (g Graphs) View() string {
+func (g *Graphs) View() string {
 	cpuColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.CPULimit)], asciigraph.ColorNames[string(g.conf.CPUUsage)])
 	memColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.MemLimit)], asciigraph.ColorNames[string(g.conf.MemUsage)])
 	cpuPlot := g.plot(g.cpuData[g.name], "CPU", asciigraph.Min(g.cpuMin), asciigraph.Max(g.cpuMax), cpuColors)
 	memPlot := g.plot(g.memData[g.name], "MEM", asciigraph.Min(g.memMin), asciigraph.Max(g.memMax), memColors)
-	style := border.Copy().
-		Align(lipgloss.Top).
-		BorderForeground(adaptive.Copy().GetForeground()).
+	g.style = g.style.
 		MaxWidth(g.Width / 2).
 		MaxHeight(g.Height).
 		Width(g.Width/2 - 2)
-	return lipgloss.JoinHorizontal(lipgloss.Top, style.Render(cpuPlot), style.Render(memPlot))
+	return lipgloss.JoinHorizontal(lipgloss.Top, g.style.Render(cpuPlot), g.style.Render(memPlot))
 }
 
 func (g *Graphs) updateData(name string, cpuData, memData map[string][][]float64) {
