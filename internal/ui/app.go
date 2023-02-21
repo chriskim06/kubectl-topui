@@ -31,6 +31,8 @@ type App struct {
 	ready      bool
 	sizeReady  bool
 	err        error
+	height     int
+	width      int
 	itemsPane  List
 	graphsPane Graphs
 	yamlPane   viewport.Model
@@ -40,9 +42,6 @@ type App struct {
 func New(resource metrics.Resource, interval int, options interface{}, showManagedFields bool, flags *genericclioptions.ConfigFlags) *App {
 	conf := config.GetTheme()
 	items := NewList(resource, conf)
-	items.content.SetShowStatusBar(false)
-	items.content.SetFilteringEnabled(false)
-	items.content.SetShowHelp(false)
 	graphColor := asciigraph.White
 	if !lipgloss.HasDarkBackground() {
 		graphColor = asciigraph.Black
@@ -72,13 +71,16 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		a.sizeReady = true
+		a.height = msg.Height
+		a.width = msg.Width
 		third := msg.Width / 3
 		half := msg.Height / 2
+		thirdRounded := third + (msg.Width % 3)
 		a.itemsPane.SetSize(msg.Width-third, half)
 		a.graphsPane.SetSize(msg.Width, half)
-		a.yamlPane = viewport.New(third, half+2)
+		a.yamlPane = viewport.New(thirdRounded, half)
 		a.yamlPane.SetContent(strings.Repeat(" ", a.yamlPane.Width-5))
-		a.yamlPane.Style = lipgloss.NewStyle().Border(lipgloss.NormalBorder())
+		a.yamlPane.Style = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Width(thirdRounded).MaxWidth(thirdRounded).Height(half).MaxHeight(half)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "ctrl+c":
@@ -87,7 +89,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !a.itemsPane.focused {
 				a.itemsPane.focused = true
 				a.yamlPane.SetContent(strings.Repeat(" ", a.yamlPane.Width-5))
-				a.yamlPane.Style.BorderForeground(adaptive.GetForeground())
+				a.yamlPane.Style.BorderForeground(adaptive.Copy().GetForeground())
 			} else {
 				return a, tea.Quit
 			}
@@ -112,7 +114,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.yamlPane.SetContent(s)
 				a.yamlPane.Style.BorderForeground(toColor(string(a.conf.Selected)))
 			}
-		case "j", "k", "up", "down":
+		case "j", "k", "h", "l", "up", "down", "left", "right":
 			if !a.ready || !a.sizeReady {
 				return a, nil
 			}
@@ -162,10 +164,9 @@ func (a *App) updateLoading(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 
 func (a App) View() string {
 	if !a.ready || !a.sizeReady {
-		return a.loading.View() + "Initializing..."
+		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, a.loading.View()+"Initializing...")
 	}
-	yaml := lipgloss.NewStyle().Height(a.yamlPane.Height).Width(a.yamlPane.Width).Render(a.yamlPane.View())
-	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), yaml)
+	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.yamlPane.View())
 	return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), bottom)
 }
 

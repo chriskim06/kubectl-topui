@@ -64,7 +64,13 @@ func (g Graphs) View() string {
 	memColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.MemLimit)], asciigraph.ColorNames[string(g.conf.MemUsage)])
 	cpuPlot := g.plot(g.cpuData[g.name], "CPU", asciigraph.Min(g.cpuMin), asciigraph.Max(g.cpuMax), cpuColors)
 	memPlot := g.plot(g.memData[g.name], "MEM", asciigraph.Min(g.memMin), asciigraph.Max(g.memMax), memColors)
-	style := lipgloss.NewStyle().Align(lipgloss.Top).BorderStyle(lipgloss.NormalBorder()).BorderForeground(adaptive.GetForeground()).Width(g.Width/2 - 2).Height(g.Height - 6)
+	style := lipgloss.NewStyle().
+		Align(lipgloss.Top).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(adaptive.Copy().GetForeground()).
+		MaxWidth(g.Width / 2).
+		MaxHeight(g.Height).
+		Width(g.Width/2 - 2)
 	return lipgloss.JoinHorizontal(lipgloss.Top, style.Render(cpuPlot), style.Render(memPlot))
 }
 

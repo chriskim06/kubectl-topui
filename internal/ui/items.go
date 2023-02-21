@@ -5,11 +5,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/kubectl-ptop/internal/config"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
+	"github.com/chriskim06/kubectl-ptop/internal/ui/list"
+	"github.com/muesli/reflow/truncate"
 )
 
 type listItem string
@@ -27,6 +28,13 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		return
 	}
 
+	line := string(i)
+	if m.GetOffset() >= len(line) {
+		line = ""
+	} else {
+		line = line[m.GetOffset():]
+	}
+	line = truncate.StringWithTail(line, uint(m.Width()), "…")
 	a := adaptive.Copy()
 	fn := a.PaddingLeft(2).Bold(false).Render
 	if index == m.Index() {
@@ -35,7 +43,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		}
 	}
 
-	fmt.Fprint(w, fn(string(i)))
+	fmt.Fprint(w, fn(line))
 }
 
 type List struct {
@@ -48,10 +56,16 @@ type List struct {
 }
 
 func NewList(resource metrics.Resource, conf config.Colors) *List {
+	itemList := list.New([]list.Item{}, itemDelegate{}, 0, 0)
+	itemList.SetShowPagination(true)
+	itemList.SetShowHelp(false)
+	itemList.SetFilteringEnabled(false)
+	itemList.SetShowFilter(false)
+	itemList.SetShowStatusBar(false)
 	return &List{
 		resource: resource,
 		conf:     conf,
-		content:  list.New([]list.Item{}, itemDelegate{}, 0, 0),
+		content:  itemList,
 		focused:  true,
 	}
 }
@@ -61,9 +75,9 @@ func (l List) Init() tea.Cmd {
 }
 
 func (l List) Update(msg tea.Msg) (List, tea.Cmd) {
-	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		var cmd tea.Cmd
 		l.content, cmd = l.content.Update(msg)
 		return l, cmd
 	case tickMsg:
@@ -82,17 +96,19 @@ func (l List) Update(msg tea.Msg) (List, tea.Cmd) {
 func (l List) View() string {
 	var style lipgloss.Style
 	if l.focused {
-		style = border.BorderForeground(toColor(string(l.conf.Selected)))
+		style = border.Copy().BorderForeground(toColor(string(l.conf.Selected)))
 	} else {
-		style = border.BorderForeground(adaptive.GetForeground())
+		style = border.Copy().BorderForeground(adaptive.Copy().GetForeground())
 	}
-	return style.Width(l.Width).Height(l.Height).Render(l.content.View())
+	style = style.Width(l.Width - 2).Height(l.Height - 2).MaxWidth(l.Width).MaxHeight(l.Height)
+	v, h := style.GetFrameSize()
+	l.content.SetSize(l.Width-h-6, l.Height-v-1)
+	return style.Render(l.content.View())
 }
 
 func (l *List) SetSize(width, height int) {
 	l.Width = width
 	l.Height = height
-	l.content.SetSize(width, height)
 }
 
 func (l List) GetSelected() string {
