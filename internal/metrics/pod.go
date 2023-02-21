@@ -107,12 +107,13 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 		podMetrics := getPodMetrics(&item)
 		limits := getPodResourceLimits(pod)
 		ready, total, restarts := containerStatuses(pod.Status)
+		mem := podMetrics[v1.ResourceMemory]
 		values = append(values, MetricValue{
 			Name:      item.Name,
 			CPUCores:  podMetrics[v1.ResourceCPU],
-			MemCores:  podMetrics[v1.ResourceMemory],
 			CPULimit:  limits.cpuLimit,
-			MemLimit:  limits.memLimit,
+			MemCores:  mem.Value() / DIVISOR,
+			MemLimit:  limits.memLimit.Value() / DIVISOR,
 			Namespace: pod.Namespace,
 			Node:      pod.Spec.NodeName,
 			Status:    string(pod.Status.Phase),

@@ -76,9 +76,9 @@ func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricValue, err
 			CPUPercent: cpuFraction,
 			MemPercent: memFraction,
 			CPUCores:   cpuQuantity,
-			MemCores:   memQuantity,
+			MemCores:   memQuantity.Value() / DIVISOR,
 			CPULimit:   cpuAvailable,
-			MemLimit:   memAvailable,
+			MemLimit:   memAvailable.Value() / DIVISOR,
 		})
 	}
 

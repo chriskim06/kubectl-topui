@@ -30,6 +30,8 @@ type Resource string
 const (
 	POD  Resource = "PODS"
 	NODE Resource = "NODES"
+
+	DIVISOR = 1024 * 1024
 )
 
 // MetricValue is an object containing the cpu/memory resources for
@@ -39,9 +41,9 @@ type MetricValue struct {
 	CPUPercent float64
 	MemPercent float64
 	CPUCores   resource.Quantity
-	MemCores   resource.Quantity
 	CPULimit   resource.Quantity
-	MemLimit   resource.Quantity
+	MemCores   int64
+	MemLimit   int64
 
 	Namespace string
 	Node      string

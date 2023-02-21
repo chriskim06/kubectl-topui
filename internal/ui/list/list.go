@@ -472,6 +472,7 @@ func (m *Model) CursorUp() {
 
 	// Go to the previous page
 	m.Paginator.PrevPage()
+	m.offset = 0
 	m.cursor = m.Paginator.ItemsOnPage(len(m.VisibleItems())) - 1
 }
 
@@ -491,6 +492,7 @@ func (m *Model) CursorDown() {
 	if !m.Paginator.OnLastPage() {
 		m.Paginator.NextPage()
 		m.cursor = 0
+		m.offset = 0
 		return
 	}
 
@@ -519,11 +521,13 @@ func (m *Model) CursorLeft() {
 // PrevPage moves to the previous page, if available.
 func (m Model) PrevPage() {
 	m.Paginator.PrevPage()
+	m.offset = 0
 }
 
 // NextPage moves to the next page, if available.
 func (m Model) NextPage() {
 	m.Paginator.NextPage()
+	m.offset = 0
 }
 
 // FilterState returns the current filter state.

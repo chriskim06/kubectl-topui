@@ -28,6 +28,11 @@ var (
 	}
 )
 
+type graphData struct {
+	limit []float64
+	usage []float64
+}
+
 func tabStrings(data []metrics.MetricValue, resource metrics.Resource) (string, []string) {
 	var b bytes.Buffer
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
@@ -53,8 +58,8 @@ func fmtStr(m metrics.MetricValue, resource metrics.Resource) string {
 			m.Node,
 			m.CPUCores.MilliValue(),
 			m.CPULimit.MilliValue(),
-			m.MemCores.Value()/(1024*1024),
-			m.MemLimit.Value()/(1024*1024),
+			m.MemCores,
+			m.MemLimit,
 			m.Restarts,
 			m.Age,
 		)
@@ -65,8 +70,8 @@ func fmtStr(m metrics.MetricValue, resource metrics.Resource) string {
 			m.CPUCores.MilliValue(),
 			m.CPULimit.MilliValue(),
 			m.CPUPercent,
-			m.MemCores.Value()/(1024*1024),
-			m.MemLimit.Value()/(1024*1024),
+			m.MemCores,
+			m.MemLimit,
 			m.MemPercent,
 		)
 	}

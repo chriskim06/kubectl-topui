@@ -187,24 +187,16 @@ func (a *App) updateData() tea.Msg {
 		if a.cpuData[name] == nil || a.memData[name] == nil {
 			a.cpuData[name] = [][]float64{{}, {}}
 			a.memData[name] = [][]float64{{}, {}}
-		} else {
-			if len(a.cpuData[name][0]) == 100 {
-				a.cpuData[name][0] = a.cpuData[name][0][1:]
-			}
-			if len(a.cpuData[name][1]) == 100 {
-				a.cpuData[name][1] = a.cpuData[name][1][1:]
-			}
-			if len(a.memData[name][0]) == 100 {
-				a.memData[name][0] = a.memData[name][0][1:]
-			}
-			if len(a.memData[name][1]) == 100 {
-				a.memData[name][1] = a.memData[name][1][1:]
-			}
+		} else if len(a.cpuData[name][0]) == 50 {
+			a.cpuData[name][0] = a.cpuData[name][0][1:]
+			a.cpuData[name][1] = a.cpuData[name][1][1:]
+			a.memData[name][0] = a.memData[name][0][1:]
+			a.memData[name][1] = a.memData[name][1][1:]
 		}
 		a.cpuData[name][0] = append(a.cpuData[name][0], float64(metric.CPULimit.MilliValue()))
 		a.cpuData[name][1] = append(a.cpuData[name][1], float64(metric.CPUCores.MilliValue()))
-		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit.Value()/(1024*1024)))
-		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores.Value()/(1024*1024)))
+		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit))
+		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores))
 	}
 	return tickMsg{
 		m:       m,
