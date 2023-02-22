@@ -69,12 +69,11 @@ func (l List) Init() tea.Cmd {
 	return nil
 }
 
-func (l List) Update(msg tea.Msg) (List, tea.Cmd) {
+func (l *List) Update(msg tea.Msg) (List, tea.Cmd) {
+	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		var cmd tea.Cmd
 		l.content, cmd = l.content.Update(msg)
-		return l, cmd
 	case tickMsg:
 		header, items := tabStrings(msg.m, l.resource)
 		listItems := []list.Item{}
@@ -84,7 +83,7 @@ func (l List) Update(msg tea.Msg) (List, tea.Cmd) {
 		l.content.Title = header
 		l.content.SetItems(listItems)
 	}
-	return l, nil
+	return *l, cmd
 }
 
 func (l List) View() string {
@@ -93,15 +92,16 @@ func (l List) View() string {
 	} else {
 		l.style.BorderForeground(adaptive.Copy().GetForeground())
 	}
-	v, h := l.style.GetFrameSize()
-	l.content.SetSize(l.Width-h, l.Height-v)
 	return l.style.Render(l.content.View())
 }
 
 func (l *List) SetSize(width, height int) {
 	l.Width = width
 	l.Height = height
-	l.style = l.style.Width(l.Width).Height(l.Height)
+	l.style = l.style.Width(l.Width).Height(l.Height).Padding(0, 1)
+	v, h := l.style.GetFrameSize()
+	l.content.Styles.TitleBar.Width(l.Width - h).MaxWidth(l.Width - h)
+	l.content.SetSize(l.Width-h, l.Height-v)
 }
 
 func (l List) GetSelected() string {

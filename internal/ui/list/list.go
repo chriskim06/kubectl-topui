@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/reflow/ansi"
+	"github.com/muesli/reflow/truncate"
 )
 
 // Item is an item that appears in the list.
@@ -138,17 +139,6 @@ func (m *Model) SetItems(i []Item) tea.Cmd {
 	m.items = i
 	m.updatePagination()
 	return nil
-}
-
-// Select selects the given index of the list and goes to its respective page.
-func (m *Model) Select(index int) {
-	m.Paginator.Page = index / m.Paginator.PerPage
-	m.cursor = index % m.Paginator.PerPage
-}
-
-// ResetSelected resets the selected item to the first item in the first page of the list.
-func (m *Model) ResetSelected() {
-	m.Select(0)
 }
 
 // SetDelegate sets the item delegate.
@@ -310,13 +300,6 @@ func (m *Model) updatePagination() {
 	}
 }
 
-func (m *Model) hideStatusMessage() {
-	m.statusMessage = ""
-	if m.statusMessageTimer != nil {
-		m.statusMessageTimer.Stop()
-	}
-}
-
 // Update is the Bubble Tea update loop.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
@@ -373,9 +356,6 @@ func (m *Model) handleBrowsing(msg tea.Msg) tea.Cmd {
 		}
 	}
 
-	cmd := m.delegate.Update(msg, m)
-	cmds = append(cmds, cmd)
-
 	// Keep the index in bounds when paginating
 	itemsOnPage := m.Paginator.ItemsOnPage(len(m.VisibleItems()))
 	if m.cursor > itemsOnPage-1 {
@@ -428,6 +408,7 @@ func (m Model) titleView() string {
 		} else {
 			titleStr = titleStr[m.offset:]
 		}
+		titleStr = truncate.StringWithTail(titleStr, uint(m.width), "…")
 		view += m.Styles.Title.Render(titleStr)
 	}
 

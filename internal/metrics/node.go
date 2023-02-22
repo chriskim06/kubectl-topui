@@ -73,12 +73,12 @@ func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricValue, err
 		memFraction := float64(memQuantity.MilliValue()) / float64(memAvailable.MilliValue()) * 100
 		values = append(values, MetricValue{
 			Name:       m.Name,
-			CPUPercent: cpuFraction,
-			MemPercent: memFraction,
 			CPUCores:   cpuQuantity,
-			MemCores:   memQuantity.Value() / DIVISOR,
 			CPULimit:   cpuAvailable,
+			CPUPercent: cpuFraction,
+			MemCores:   memQuantity.Value() / DIVISOR,
 			MemLimit:   memAvailable.Value() / DIVISOR,
+			MemPercent: memFraction,
 		})
 	}
 

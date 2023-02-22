@@ -111,7 +111,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.infoPane.focused = true
 				a.infoPane.SetContent(output)
 			}
-		case "j", "k", "h", "l", "up", "down", "left", "right":
+		case "j", "k", "h", "l", "g", "G", "up", "down", "left", "right", "tab", "shift+tab", "home", "end", "pgup", "pgdown":
 			if !a.ready || !a.sizeReady {
 				return a, nil
 			}
@@ -120,7 +120,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return a, cmd
 			}
 
-			a.itemsPane.content, cmd = a.itemsPane.content.Update(msg)
+			a.itemsPane, cmd = a.itemsPane.Update(msg)
 			cmds = append(cmds, cmd)
 			a.current = a.itemsPane.GetSelected()
 			a.graphsPane.updateData(a.current, a.cpuData, a.memData)
@@ -137,9 +137,10 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var itemsCmd, graphsCmd tea.Cmd
 		a.itemsPane, itemsCmd = a.itemsPane.Update(msg)
 		a.graphsPane, graphsCmd = a.graphsPane.Update(msg)
-		cmds = append(cmds, a.tickCmd(), itemsCmd, graphsCmd)
+		cmds = append(cmds, itemsCmd, graphsCmd, a.tickCmd())
 	case spinner.TickMsg:
 		if a.ready && a.sizeReady {
+			a.loading = nil
 			return a, nil
 		}
 		*a.loading, cmd = a.loading.Update(msg)

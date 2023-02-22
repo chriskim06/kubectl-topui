@@ -31,7 +31,7 @@ const (
 	POD  Resource = "PODS"
 	NODE Resource = "NODES"
 
-	DIVISOR = 1024 * 1024
+	DIVISOR int64 = 1024 * 1024
 )
 
 // MetricValue is an object containing the cpu/memory resources for

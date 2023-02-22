@@ -43,11 +43,11 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("→/l", "right"),
 		),
 		PrevPage: key.NewBinding(
-			key.WithKeys("shift+tab", "pgup", "b", "u"),
+			key.WithKeys("shift+tab", "pgup"),
 			key.WithHelp("←/shift+tab/pgup", "prev page"),
 		),
 		NextPage: key.NewBinding(
-			key.WithKeys("tab", "pgdown", "f", "d"),
+			key.WithKeys("tab", "pgdown"),
 			key.WithHelp("→/tab/pgdn", "next page"),
 		),
 		GoToStart: key.NewBinding(
