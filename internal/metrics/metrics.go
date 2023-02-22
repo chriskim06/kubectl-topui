@@ -19,6 +19,7 @@ import (
 	"log"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -63,22 +64,29 @@ type MetricsClient struct {
 	showManagedFields bool
 }
 
-func New(flags *genericclioptions.ConfigFlags, showManagedFields bool) MetricsClient {
+func New(flags *genericclioptions.ConfigFlags, showManagedFields bool, ns *string, allNs *bool) MetricsClient {
 	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
 	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
 	k, m, err := clientSets(f)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ns, _, err := f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		log.Fatal(err)
+	var namespace string
+	if ns != nil {
+		namespace = *ns
+	} else if allNs != nil && *allNs {
+		namespace = metav1.NamespaceAll
+	} else {
+		namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	return MetricsClient{
 		k:     k,
 		m:     m,
 		flags: flags,
-		ns:    ns,
+		ns:    namespace,
 
 		showManagedFields: showManagedFields,
 	}

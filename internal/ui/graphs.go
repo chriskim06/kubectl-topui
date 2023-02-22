@@ -50,10 +50,7 @@ func (g *Graphs) View() string {
 	memColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.MemLimit)], asciigraph.ColorNames[string(g.conf.MemUsage)])
 	cpuPlot := g.plot(g.cpuData[g.name], "CPU", asciigraph.Min(g.cpuMin), asciigraph.Max(g.cpuMax), cpuColors)
 	memPlot := g.plot(g.memData[g.name], "MEM", asciigraph.Min(g.memMin), asciigraph.Max(g.memMax), memColors)
-	g.style = g.style.
-		MaxWidth(g.Width / 2).
-		MaxHeight(g.Height).
-		Width(g.Width/2 - 2)
+	g.style = g.style.MaxWidth(g.Width / 2).MaxHeight(g.Height).Width(g.Width/2 - 2)
 	return lipgloss.JoinHorizontal(lipgloss.Top, g.style.Render(cpuPlot), g.style.Render(memPlot))
 }
 
@@ -89,7 +86,6 @@ func (g Graphs) plot(data [][]float64, caption string, o ...asciigraph.Option) s
 	options := []asciigraph.Option{
 		asciigraph.Height(g.Height - 6),
 		asciigraph.Width(0),
-		asciigraph.Offset(6),
 		asciigraph.Caption(fmt.Sprintf("%s - %s", caption, g.name)),
 		asciigraph.CaptionColor(g.graphColor),
 		asciigraph.AxisColor(g.graphColor),

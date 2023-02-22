@@ -45,9 +45,6 @@ type resourceLimits struct {
 // GetPodMetrics returns a slice of objects that are meant to be easily
 // consumable by the various termui widgets
 func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, error) {
-	if m.ns == "" {
-		m.ns = metav1.NamespaceAll
-	}
 	o.MetricsClient = m.m
 	o.PodClient = m.k.CoreV1()
 
@@ -126,7 +123,13 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 
 	// Sort the metrics results somehow
 	sort.Slice(values, func(i, j int) bool {
-		return values[i].Name < values[j].Name
+		if values[i].Namespace < values[j].Namespace {
+			return true
+		} else if values[i].Namespace > values[j].Namespace {
+			return false
+		} else {
+			return values[i].Name < values[j].Name
+		}
 	})
 
 	return values, nil

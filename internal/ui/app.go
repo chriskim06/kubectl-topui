@@ -43,8 +43,15 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 	}
 	loading := spinner.New(spinner.WithSpinner(spinner.Dot))
 	graphs := NewGraphs(conf, graphColor)
+	var ns *string
+	var allNs *bool
+	if resource == metrics.POD {
+		allNamespaces := options.(*top.TopPodOptions).AllNamespaces
+		allNs = &allNamespaces
+		ns = flags.Namespace
+	}
 	app := &App{
-		client:     metrics.New(flags, showManagedFields),
+		client:     metrics.New(flags, showManagedFields, ns, allNs),
 		conf:       conf,
 		resource:   resource,
 		options:    options,
