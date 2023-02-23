@@ -19,8 +19,8 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/chriskim06/kubectl-ptop/internal/metrics"
-	"github.com/chriskim06/kubectl-ptop/internal/ui"
+	"github.com/chriskim06/kubectl-topui/internal/metrics"
+	"github.com/chriskim06/kubectl-topui/internal/ui"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"

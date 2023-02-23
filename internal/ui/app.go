@@ -7,8 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/asciigraph"
-	"github.com/chriskim06/kubectl-ptop/internal/config"
-	"github.com/chriskim06/kubectl-ptop/internal/metrics"
+	"github.com/chriskim06/kubectl-topui/internal/config"
+	"github.com/chriskim06/kubectl-topui/internal/metrics"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 )

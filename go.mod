@@ -1,4 +1,4 @@
-module github.com/chriskim06/kubectl-ptop
+module github.com/chriskim06/kubectl-topui
 
 go 1.15
 

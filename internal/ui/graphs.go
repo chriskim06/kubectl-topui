@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/asciigraph"
-	"github.com/chriskim06/kubectl-ptop/internal/config"
+	"github.com/chriskim06/kubectl-topui/internal/config"
 )
 
 type Graphs struct {

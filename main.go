@@ -16,7 +16,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/chriskim06/kubectl-ptop/internal/cmd"
+	"github.com/chriskim06/kubectl-topui/internal/cmd"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 

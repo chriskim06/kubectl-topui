@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/chriskim06/kubectl-ptop/internal/config"
+	"github.com/chriskim06/kubectl-topui/internal/config"
 	"github.com/muesli/reflow/padding"
 	"github.com/muesli/reflow/wrap"
 )

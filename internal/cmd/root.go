@@ -30,14 +30,14 @@ var (
 	interval          = 3
 	showManagedFields = false
 	rootCmd           = &cobra.Command{
-		Use:   "ptop",
+		Use:   "topui",
 		Short: "Prettier kubectl top output",
 		Long: addKeyboardShortcutsToDescription(`Render kubectl top output with fancier widgets!
 
 This shows standard top output along with a graph showing cpu and memory utilization for
 the currently selected pod or node. You can also view the selected pod or node spec.
 
-A config file can be defined at ~/.config/kubectl-ptop/config.yml with the following structure:
+A config file can be defined at ~/.config/kubectl-topui/config.yml with the following structure:
 
 theme:
   selected: color

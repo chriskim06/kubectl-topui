@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const configPath = "~/.config/kubectl-ptop/config.yml"
+const configPath = "~/.config/kubectl-topui/config.yml"
 
 var (
 	config          Config
@@ -52,7 +52,7 @@ func initConfig() {
 	once.Do(func() {
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
-		viper.AddConfigPath("$HOME/.config/kubectl-ptop/")
+		viper.AddConfigPath("$HOME/.config/kubectl-topui/")
 		viper.SetDefault("theme.selected", defaultSelected)
 		viper.SetDefault("theme.cpuLimit", defaultLimit)
 		viper.SetDefault("theme.cpuUsage", defaultUsage)

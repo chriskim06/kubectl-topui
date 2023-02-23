@@ -8,7 +8,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/asciigraph"
-	"github.com/chriskim06/kubectl-ptop/internal/metrics"
+	"github.com/chriskim06/kubectl-topui/internal/metrics"
 	"k8s.io/cli-runtime/pkg/printers"
 )
 

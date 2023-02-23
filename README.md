@@ -1,3 +1,3 @@
-# kubectl-ptop
+# kubectl-topui
 
 ![](./demo.gif)
