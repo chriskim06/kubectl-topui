@@ -44,19 +44,19 @@ func DefaultKeyMap() KeyMap {
 		),
 		PrevPage: key.NewBinding(
 			key.WithKeys("shift+tab", "pgup"),
-			key.WithHelp("←/shift+tab/pgup", "prev page"),
+			key.WithHelp("shift+tab", "prev page"),
 		),
 		NextPage: key.NewBinding(
 			key.WithKeys("tab", "pgdown"),
-			key.WithHelp("→/tab/pgdn", "next page"),
+			key.WithHelp("tab", "next page"),
 		),
 		GoToStart: key.NewBinding(
 			key.WithKeys("home", "g"),
-			key.WithHelp("g/home", "go to start"),
+			key.WithHelp("g", "go to start"),
 		),
 		GoToEnd: key.NewBinding(
 			key.WithKeys("end", "G"),
-			key.WithHelp("G/end", "go to end"),
+			key.WithHelp("G", "go to end"),
 		),
 
 		// Quitting.

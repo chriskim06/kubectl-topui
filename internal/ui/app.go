@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -148,6 +149,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case spinner.TickMsg:
 		if a.ready && a.sizeReady {
 			a.loading = nil
+			half := a.height / 2
+			thirdRounded := (a.width / 3) + (a.width % 3)
+			a.itemsPane.SetSize(a.width-thirdRounded-5, half)
 			return a, nil
 		}
 		*a.loading, cmd = a.loading.Update(msg)
@@ -190,6 +194,7 @@ func (a *App) updateData() tea.Msg {
 		m, err = a.client.GetNodeMetrics(a.options.(*top.TopNodeOptions))
 	}
 	if err != nil {
+		fmt.Println(err)
 		return tickMsg{err: err}
 	}
 	for _, metric := range m {

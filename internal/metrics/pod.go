@@ -47,6 +47,7 @@ type resourceLimits struct {
 func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, error) {
 	o.MetricsClient = m.m
 	o.PodClient = m.k.CoreV1()
+	o.Namespace = m.ns
 
 	versionedMetrics := &metricsv1beta1api.PodMetricsList{}
 	mc := o.MetricsClient.MetricsV1beta1()

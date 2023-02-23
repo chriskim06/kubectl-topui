@@ -54,6 +54,7 @@ type List struct {
 
 func NewList(resource metrics.Resource, conf config.Colors) *List {
 	itemList := list.New([]list.Item{}, itemDelegate{}, 0, 0)
+	itemList.ItemNamePlural = resource.LowerCase()
 	itemList.Styles.Title = lipgloss.NewStyle().Bold(true).Padding(0)
 	itemList.Styles.TitleBar = lipgloss.NewStyle().Padding(0)
 	return &List{
@@ -61,7 +62,7 @@ func NewList(resource metrics.Resource, conf config.Colors) *List {
 		conf:     conf,
 		content:  itemList,
 		focused:  true,
-		style:    border.Copy(),
+		style:    border.Copy().Padding(0, 1),
 	}
 }
 
@@ -98,7 +99,7 @@ func (l List) View() string {
 func (l *List) SetSize(width, height int) {
 	l.Width = width
 	l.Height = height
-	l.style = l.style.Width(l.Width).Height(l.Height).Padding(0, 1)
+	l.style = l.style.Width(l.Width).Height(l.Height)
 	v, h := l.style.GetFrameSize()
 	l.content.Styles.TitleBar.Width(l.Width - h).MaxWidth(l.Width - h)
 	l.content.SetSize(l.Width-h, l.Height-v)

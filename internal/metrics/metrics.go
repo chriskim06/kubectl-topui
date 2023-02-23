@@ -17,6 +17,7 @@ package metrics
 
 import (
 	"log"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +28,10 @@ import (
 )
 
 type Resource string
+
+func (r Resource) LowerCase() string {
+	return strings.ToLower(string(r))
+}
 
 const (
 	POD  Resource = "PODS"

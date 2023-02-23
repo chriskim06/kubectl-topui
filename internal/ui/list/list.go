@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/paginator"
 	tea "github.com/charmbracelet/bubbletea"
@@ -49,8 +50,7 @@ type Model struct {
 	showTitle      bool
 	showPagination bool
 
-	itemNameSingular string
-	itemNamePlural   string
+	ItemNamePlural string
 
 	Title  string
 	Styles Styles
@@ -61,6 +61,7 @@ type Model struct {
 	width     int
 	height    int
 	Paginator paginator.Model
+	Help      help.Model
 	cursor    int
 	offset    int
 
@@ -83,19 +84,19 @@ func New(items []Item, delegate ItemDelegate, width, height int) Model {
 	p.InactiveDot = styles.InactivePaginationDot.String()
 
 	m := Model{
-		showTitle:        true,
-		showPagination:   true,
-		itemNameSingular: "item",
-		itemNamePlural:   "items",
-		KeyMap:           DefaultKeyMap(),
-		Styles:           styles,
-		Title:            "List",
+		showTitle:      true,
+		showPagination: true,
+		ItemNamePlural: "items",
+		KeyMap:         DefaultKeyMap(),
+		Styles:         styles,
+		Title:          "List",
 
 		width:     width,
 		height:    height,
 		delegate:  delegate,
 		items:     items,
 		Paginator: p,
+		Help:      help.New(),
 	}
 
 	m.updatePagination()
@@ -265,7 +266,26 @@ func (m *Model) SetHeight(v int) {
 func (m *Model) setSize(width, height int) {
 	m.width = width
 	m.height = height
+	m.Help.Width = width
 	m.updatePagination()
+}
+
+func (m Model) ShortHelp() []key.Binding {
+	return []key.Binding{
+		m.KeyMap.CursorUp,
+		m.KeyMap.CursorDown,
+		m.KeyMap.NextPage,
+		m.KeyMap.PrevPage,
+		m.KeyMap.CursorLeft,
+		m.KeyMap.CursorRight,
+		m.KeyMap.GoToStart,
+		m.KeyMap.GoToEnd,
+		m.KeyMap.Quit,
+	}
+}
+
+func (m Model) FullHelp() [][]key.Binding {
+	return [][]key.Binding{m.ShortHelp()}
 }
 
 // Update pagination according to the amount of items for the current state.
@@ -280,6 +300,7 @@ func (m *Model) updatePagination() {
 	if m.showPagination {
 		availHeight -= lipgloss.Height(m.paginationView())
 	}
+	availHeight -= lipgloss.Height(m.helpView())
 
 	m.Paginator.PerPage = max(1, availHeight/(m.delegate.Height()+m.delegate.Spacing()))
 
@@ -384,12 +405,16 @@ func (m Model) View() string {
 		availHeight -= lipgloss.Height(pagination)
 	}
 
+	help := m.helpView()
+	availHeight -= lipgloss.Height(help)
+
 	content := lipgloss.NewStyle().Height(availHeight).Render(m.populatedView())
 	sections = append(sections, content)
 
 	if m.showPagination {
 		sections = append(sections, pagination)
 	}
+	sections = append(sections, help)
 
 	return lipgloss.JoinVertical(lipgloss.Left, sections...)
 }
@@ -440,6 +465,10 @@ func (m Model) paginationView() string {
 	return style.Render(s)
 }
 
+func (m Model) helpView() string {
+	return m.Styles.HelpStyle.Render(m.Help.View(m))
+}
+
 func (m Model) populatedView() string {
 	items := m.VisibleItems()
 
@@ -447,7 +476,7 @@ func (m Model) populatedView() string {
 
 	// Empty states
 	if len(items) == 0 {
-		return m.Styles.NoItems.Render("No " + m.itemNamePlural + " found.")
+		return m.Styles.NoItems.Render("No " + m.ItemNamePlural + " found.")
 	} else {
 		start, end := m.Paginator.GetSliceBounds(len(items))
 		docs := items[start:end]
