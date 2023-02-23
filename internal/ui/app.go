@@ -10,6 +10,7 @@ import (
 	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-topui/internal/config"
 	"github.com/chriskim06/kubectl-topui/internal/metrics"
+	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 )
@@ -162,7 +163,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (a App) View() string {
 	if a.err != nil {
-		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, errStyle.Width(a.width/2).Height(a.height/2).Render("ERROR:\n\n"+a.err.Error()))
+		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, utils.ErrStyle.Width(a.width/2).Height(a.height/2).Render("ERROR:\n\n"+a.err.Error()))
 	}
 	if !a.ready || !a.sizeReady {
 		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, a.loading.View()+"Initializing...")

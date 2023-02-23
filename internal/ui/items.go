@@ -10,7 +10,7 @@ import (
 	"github.com/chriskim06/kubectl-topui/internal/config"
 	"github.com/chriskim06/kubectl-topui/internal/metrics"
 	"github.com/chriskim06/kubectl-topui/internal/ui/list"
-	"github.com/muesli/reflow/truncate"
+	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
 )
 
 type listItem string
@@ -33,12 +33,12 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		line = ""
 	} else {
 		line = line[m.GetOffset():]
-		line = truncate.StringWithTail(line, uint(m.Width()), "…")
+		line = utils.Truncate(line, m.Width())
 	}
 	if index == m.Index() {
-		fmt.Fprintf(w, adaptive.Copy().Background(lipgloss.Color("245")).Bold(true).Render(line))
+		fmt.Fprintf(w, utils.Adaptive.Copy().Background(lipgloss.Color("245")).Bold(true).Render(line))
 	} else {
-		fmt.Fprintf(w, adaptive.Copy().Render(line))
+		fmt.Fprintf(w, utils.Adaptive.Copy().Render(line))
 	}
 }
 
@@ -62,7 +62,7 @@ func NewList(resource metrics.Resource, conf config.Colors) *List {
 		conf:     conf,
 		content:  itemList,
 		focused:  true,
-		style:    border.Copy().Padding(0, 1),
+		style:    utils.Border.Copy().Padding(0, 1),
 	}
 }
 
@@ -76,7 +76,7 @@ func (l *List) Update(msg tea.Msg) (List, tea.Cmd) {
 	case tea.KeyMsg:
 		l.content, cmd = l.content.Update(msg)
 	case tickMsg:
-		header, items := tabStrings(msg.m, l.resource)
+		header, items := utils.TabStrings(msg.m, l.resource)
 		listItems := []list.Item{}
 		for _, item := range items {
 			listItems = append(listItems, listItem(item))
@@ -89,9 +89,9 @@ func (l *List) Update(msg tea.Msg) (List, tea.Cmd) {
 
 func (l List) View() string {
 	if l.focused {
-		l.style.BorderForeground(toColor(string(l.conf.Selected)))
+		l.style.BorderForeground(utils.ToColor(string(l.conf.Selected)))
 	} else {
-		l.style.BorderForeground(adaptive.Copy().GetForeground())
+		l.style.BorderForeground(utils.Adaptive.Copy().GetForeground())
 	}
 	return l.style.Render(l.content.View())
 }

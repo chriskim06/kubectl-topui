@@ -1,4 +1,4 @@
-package ui
+package utils
 
 import (
 	"bytes"
@@ -9,10 +9,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-topui/internal/metrics"
+	"github.com/muesli/reflow/truncate"
 	"k8s.io/cli-runtime/pkg/printers"
 )
 
-const helpText = `This app shows metrics for pods and nodes! The graphs display the limit and usage for the cpu and memory of whichever item is selected.
+const HelpText = `This app shows metrics for pods and nodes! The graphs display the limit and usage for the cpu and memory of whichever item is selected.
 
 Keyboard Shortcuts
   - j: move selection down or scroll down spec
@@ -21,16 +22,16 @@ Keyboard Shortcuts
   - ?: open/close this help menu`
 
 var (
-	adaptive = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
-	border   = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder())
-	errStyle = lipgloss.NewStyle().BorderStyle(lipgloss.DoubleBorder()).BorderForeground(lipgloss.Color("9"))
+	Adaptive = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
+	Border   = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder())
+	ErrStyle = lipgloss.NewStyle().BorderStyle(lipgloss.DoubleBorder()).BorderForeground(lipgloss.Color("9"))
 	headers  = map[metrics.Resource]string{
 		metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tMEM USAGE\tMEM LIMIT\tRESTARTS\tAGE",
 		metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU PERCENT\tMEM USAGE\tMEM AVAILABLE\tMEM PERCENT",
 	}
 )
 
-func tabStrings(data []metrics.MetricValue, resource metrics.Resource) (string, []string) {
+func TabStrings(data []metrics.MetricValue, resource metrics.Resource) (string, []string) {
 	var b bytes.Buffer
 	w := printers.GetNewTabWriter(&b)
 	fmt.Fprintln(w, headers[resource])
@@ -73,10 +74,14 @@ func writeMetric(w io.Writer, m metrics.MetricValue, resource metrics.Resource) 
 	}
 }
 
-func toColor(s string) lipgloss.Color {
+func ToColor(s string) lipgloss.Color {
 	b, ok := asciigraph.ColorNames[s]
 	if !ok {
-		return adaptive.GetForeground().(lipgloss.Color)
+		return Adaptive.GetForeground().(lipgloss.Color)
 	}
 	return lipgloss.Color(fmt.Sprintf("%d", b))
+}
+
+func Truncate(s string, width int) string {
+	return truncate.StringWithTail(s, uint(width), "…")
 }

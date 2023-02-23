@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-topui/internal/config"
+	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
 )
 
 type Graphs struct {
@@ -29,7 +30,7 @@ func NewGraphs(conf config.Colors, graphColor asciigraph.AnsiColor) *Graphs {
 	return &Graphs{
 		conf:       conf,
 		graphColor: graphColor,
-		style:      border.Copy().Align(lipgloss.Top).BorderForeground(adaptive.Copy().GetForeground()),
+		style:      utils.Border.Copy().Align(lipgloss.Top).BorderForeground(utils.Adaptive.Copy().GetForeground()),
 	}
 }
 
@@ -50,6 +51,10 @@ func (g *Graphs) View() string {
 	memColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.MemLimit)], asciigraph.ColorNames[string(g.conf.MemUsage)])
 	cpuPlot := g.plot(g.cpuData[g.name], "CPU", asciigraph.Min(g.cpuMin), asciigraph.Max(g.cpuMax), cpuColors)
 	memPlot := g.plot(g.memData[g.name], "MEM", asciigraph.Min(g.memMin), asciigraph.Max(g.memMax), memColors)
+	cpuTitle := utils.Truncate(fmt.Sprintf("CPU - %s", g.name), g.Width/2-2)
+	memTitle := utils.Truncate(fmt.Sprintf("MEM - %s", g.name), g.Width/2-2)
+	cpuPlot = fmt.Sprintf("%s\n%s", cpuTitle, cpuPlot)
+	memPlot = fmt.Sprintf("%s\n%s", memTitle, memPlot)
 	g.style = g.style.MaxWidth(g.Width / 2).MaxHeight(g.Height).Width(g.Width/2 - 2)
 	return lipgloss.JoinHorizontal(lipgloss.Top, g.style.Render(cpuPlot), g.style.Render(memPlot))
 }
@@ -84,10 +89,8 @@ func (g *Graphs) updateData(name string, cpuData, memData map[string][][]float64
 
 func (g Graphs) plot(data [][]float64, caption string, o ...asciigraph.Option) string {
 	options := []asciigraph.Option{
-		asciigraph.Height(g.Height - 6),
 		asciigraph.Width(0),
-		asciigraph.Caption(fmt.Sprintf("%s - %s", caption, g.name)),
-		asciigraph.CaptionColor(g.graphColor),
+		asciigraph.Height(g.Height - 7),
 		asciigraph.AxisColor(g.graphColor),
 		asciigraph.LabelColor(g.graphColor),
 	}

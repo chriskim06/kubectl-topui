@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/kubectl-topui/internal/config"
+	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
 	"github.com/muesli/reflow/padding"
 	"github.com/muesli/reflow/wrap"
 )
@@ -25,7 +26,7 @@ type Info struct {
 func NewInfo(conf config.Colors) *Info {
 	return &Info{
 		conf:    conf,
-		style:   border.Copy().Padding(0),
+		style:   utils.Border.Copy().Padding(0),
 		content: viewport.New(0, 0),
 	}
 }
@@ -46,9 +47,9 @@ func (i *Info) Update(msg tea.Msg) (Info, tea.Cmd) {
 
 func (i Info) View() string {
 	if i.focused {
-		i.style.BorderForeground(toColor(string(i.conf.Selected)))
+		i.style.BorderForeground(utils.ToColor(string(i.conf.Selected)))
 	} else {
-		i.style.BorderForeground(adaptive.Copy().GetForeground())
+		i.style.BorderForeground(utils.Adaptive.Copy().GetForeground())
 	}
 	return i.style.Render(i.content.View())
 }

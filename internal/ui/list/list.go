@@ -11,8 +11,8 @@ import (
 	"github.com/charmbracelet/bubbles/paginator"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
 	"github.com/muesli/reflow/ansi"
-	"github.com/muesli/reflow/truncate"
 )
 
 // Item is an item that appears in the list.
@@ -433,7 +433,7 @@ func (m Model) titleView() string {
 		} else {
 			titleStr = titleStr[m.offset:]
 		}
-		titleStr = truncate.StringWithTail(titleStr, uint(m.width), "…")
+		titleStr = utils.Truncate(titleStr, m.width)
 		view += m.Styles.Title.Render(titleStr)
 	}
 
