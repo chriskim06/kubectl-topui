@@ -1,306 +1,217 @@
 package ui
 
 import (
-	"fmt"
-	"log"
-	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-ptop/internal/config"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
-	"github.com/gdamore/tcell/v2"
-	"github.com/navidys/tvxwidgets"
-	"github.com/rivo/tview"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 )
 
-const helpPageName = "Help"
-
 type App struct {
-	client   metrics.MetricsClient
-	conf     config.Colors
-	data     []metrics.MetricsValues
-	cpuData  map[string][][]float64
-	memData  map[string][][]float64
-	view     *tview.Application
-	frame    *tview.Grid
-	header   *tview.TextView
-	items    *tview.List
-	info     *tview.TextView
-	cpu      *tvxwidgets.Plot
-	mem      *tvxwidgets.Plot
-	pages    *tview.Pages
-	resource metrics.Resource
-	options  interface{}
-	current  string
-	tick     time.Ticker
+	client     metrics.MetricsClient
+	conf       config.Colors
+	cpuData    map[string][][]float64
+	memData    map[string][][]float64
+	resource   metrics.Resource
+	options    interface{}
+	current    string
+	tick       time.Ticker
+	interval   time.Duration
+	ready      bool
+	sizeReady  bool
+	err        error
+	height     int
+	width      int
+	itemsPane  List
+	graphsPane Graphs
+	infoPane   Info
+	loading    *spinner.Model
 }
 
-func New(resource metrics.Resource, interval int, options interface{}, flags *genericclioptions.ConfigFlags) *App {
+func New(resource metrics.Resource, interval int, options interface{}, showManagedFields bool, flags *genericclioptions.ConfigFlags) *App {
 	conf := config.GetTheme()
-	info := tview.NewTextView().SetWrap(true)
-	info.SetBorder(true)
-	info.SetTitleAlign(tview.AlignLeft)
-	app := &App{
-		client:   metrics.New(flags),
-		conf:     conf,
-		resource: resource,
-		options:  options,
-		items:    tview.NewList().ShowSecondaryText(false),
-		header:   tview.NewTextView().SetTextAlign(tview.AlignLeft).SetTextStyle(tcell.StyleDefault.Bold(true)),
-		info:     info,
-		cpu:      NewPlot(conf.CPULimit.Color(), conf.CPUUsage.Color()),
-		mem:      NewPlot(conf.MemLimit.Color(), conf.MemUsage.Color()),
-		cpuData:  map[string][][]float64{},
-		memData:  map[string][][]float64{},
-		view:     tview.NewApplication(),
-		tick:     *time.NewTicker(time.Duration(interval) * time.Second),
+	items := NewList(resource, conf)
+	graphColor := asciigraph.White
+	if !lipgloss.HasDarkBackground() {
+		graphColor = asciigraph.Black
 	}
-	app.init()
+	loading := spinner.New(spinner.WithSpinner(spinner.Dot))
+	graphs := NewGraphs(conf, graphColor)
+	var ns *string
+	var allNs *bool
+	if resource == metrics.POD {
+		allNamespaces := options.(*top.TopPodOptions).AllNamespaces
+		allNs = &allNamespaces
+		ns = flags.Namespace
+	}
+	app := &App{
+		client:     metrics.New(flags, showManagedFields, ns, allNs),
+		conf:       conf,
+		resource:   resource,
+		options:    options,
+		cpuData:    map[string][][]float64{},
+		memData:    map[string][][]float64{},
+		interval:   time.Duration(interval) * time.Second,
+		itemsPane:  *items,
+		graphsPane: *graphs,
+		infoPane:   *NewInfo(conf),
+		loading:    &loading,
+	}
 	return app
 }
 
-func (a App) Run() error {
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case <-a.tick.C:
-				a.view.QueueUpdateDraw(func() {
-					a.update()
-				})
-			}
-		}
-	}()
-	defer func() {
-		a.tick.Stop()
-		done <- true
-	}()
-	return a.view.Run()
+func (a App) Init() tea.Cmd {
+	return tea.Batch(a.loading.Tick, a.updateData)
 }
 
-func (a *App) update() {
+func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		a.sizeReady = true
+		a.height = msg.Height
+		a.width = msg.Width
+		half := msg.Height / 2
+		thirdRounded := (msg.Width / 3) + (msg.Width % 3)
+		a.graphsPane.SetSize(msg.Width, half)
+		a.itemsPane.SetSize(msg.Width-thirdRounded-5, half)
+		a.infoPane.SetSize(thirdRounded, half)
+	case tea.KeyMsg:
+		switch keypress := msg.String(); keypress {
+		case "ctrl+c":
+			return a, tea.Quit
+		case "q":
+			if a.err != nil {
+				return a, tea.Quit
+			}
+			if !a.itemsPane.focused {
+				a.itemsPane.focused = true
+				a.infoPane.focused = false
+				a.infoPane.SetContent("")
+			} else {
+				return a, tea.Quit
+			}
+		case "enter":
+			if !a.ready || !a.sizeReady {
+				return a, nil
+			}
+			if a.itemsPane.focused {
+				a.itemsPane.focused = false
+				var output string
+				var err error
+				if a.resource == metrics.POD {
+					output, err = a.client.GetPod(a.itemsPane.GetSelected())
+				} else {
+					output, err = a.client.GetNode(a.itemsPane.GetSelected())
+				}
+				if err != nil {
+					a.err = err
+					return a, nil
+				}
+				a.infoPane.focused = true
+				a.infoPane.SetContent(output)
+			}
+		case "j", "k", "h", "l", "g", "G", "up", "down", "left", "right", "tab", "shift+tab", "home", "end", "pgup", "pgdown":
+			if !a.ready || !a.sizeReady {
+				return a, nil
+			}
+			if !a.itemsPane.focused {
+				a.infoPane, cmd = a.infoPane.Update(msg)
+				return a, cmd
+			}
+
+			a.itemsPane, cmd = a.itemsPane.Update(msg)
+			cmds = append(cmds, cmd)
+			a.current = a.itemsPane.GetSelected()
+			a.graphsPane.updateData(a.current, a.cpuData, a.memData)
+		}
+	case tickMsg:
+		if msg.err != nil {
+			a.err = msg.err
+			return a, nil
+		}
+		a.ready = true
+		if a.itemsPane.content.SelectedItem() != nil {
+			msg.name = a.itemsPane.GetSelected()
+		}
+		var itemsCmd, graphsCmd tea.Cmd
+		a.itemsPane, itemsCmd = a.itemsPane.Update(msg)
+		a.graphsPane, graphsCmd = a.graphsPane.Update(msg)
+		cmds = append(cmds, itemsCmd, graphsCmd, a.tickCmd())
+	case spinner.TickMsg:
+		if a.ready && a.sizeReady {
+			a.loading = nil
+			return a, nil
+		}
+		*a.loading, cmd = a.loading.Update(msg)
+		return a, cmd
+	}
+	return a, tea.Batch(cmds...)
+}
+
+func (a App) View() string {
+	if a.err != nil {
+		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, errStyle.Width(a.width/2).Height(a.height/2).Render("ERROR:\n\n"+a.err.Error()))
+	}
+	if !a.ready || !a.sizeReady {
+		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, a.loading.View()+"Initializing...")
+	}
+	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.infoPane.View())
+	return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), bottom)
+}
+
+type tickMsg struct {
+	m       []metrics.MetricValue
+	name    string
+	err     error
+	cpuData map[string][][]float64
+	memData map[string][][]float64
+}
+
+func (a *App) tickCmd() tea.Cmd {
+	return tea.Tick(a.interval, func(t time.Time) tea.Msg {
+		return a.updateData()
+	})
+}
+
+func (a *App) updateData() tea.Msg {
 	var err error
-	var m []metrics.MetricsValues
+	var m []metrics.MetricValue
 	if a.resource == metrics.POD {
 		m, err = a.client.GetPodMetrics(a.options.(*top.TopPodOptions))
 	} else {
 		m, err = a.client.GetNodeMetrics(a.options.(*top.TopNodeOptions))
 	}
 	if err != nil {
-		a.view.Stop()
-		log.Fatal(err)
+		return tickMsg{err: err}
 	}
 	for _, metric := range m {
 		name := metric.Name
-		a.graphUpkeep(name)
+		if a.cpuData[name] == nil || a.memData[name] == nil {
+			a.cpuData[name] = [][]float64{{}, {}}
+			a.memData[name] = [][]float64{{}, {}}
+		} else if len(a.cpuData[name][0]) == 50 {
+			a.cpuData[name][0] = a.cpuData[name][0][1:]
+			a.cpuData[name][1] = a.cpuData[name][1][1:]
+			a.memData[name][0] = a.memData[name][0][1:]
+			a.memData[name][1] = a.memData[name][1][1:]
+		}
 		a.cpuData[name][0] = append(a.cpuData[name][0], float64(metric.CPULimit.MilliValue()))
 		a.cpuData[name][1] = append(a.cpuData[name][1], float64(metric.CPUCores.MilliValue()))
-		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit.Value()/(1024*1024)))
-		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores.Value()/(1024*1024)))
+		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit))
+		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores))
 	}
-	a.data = m
-	_, items := tabStrings(a.data, a.resource)
-	if a.items.GetItemCount() == 0 {
-		for _, item := range items {
-			a.items.AddItem(item, "", 0, nil)
-		}
-	} else {
-		for i, item := range items {
-			a.items.SetItemText(i, item, "")
-		}
+	return tickMsg{
+		m:       m,
+		name:    m[0].Name,
+		cpuData: a.cpuData,
+		memData: a.memData,
 	}
-	a.setCurrent()
-	a.updateFrame()
-	a.updateGraphs()
-}
-
-func (a *App) graphUpkeep(name string) {
-	if a.cpuData[name] == nil || a.memData[name] == nil {
-		a.cpuData[name] = [][]float64{{}, {}}
-		a.memData[name] = [][]float64{{}, {}}
-		return
-	}
-	if len(a.cpuData[name][0]) == 100 {
-		a.cpuData[name][0] = a.cpuData[name][0][1:]
-	}
-	if len(a.cpuData[name][1]) == 100 {
-		a.cpuData[name][1] = a.cpuData[name][1][1:]
-	}
-	if len(a.memData[name][0]) == 100 {
-		a.memData[name][0] = a.memData[name][0][1:]
-	}
-	if len(a.memData[name][1]) == 100 {
-		a.memData[name][1] = a.memData[name][1][1:]
-	}
-}
-
-func (a *App) updateGraphs() {
-	a.cpu.SetData(a.cpuData[a.current])
-	a.mem.SetData(a.memData[a.current])
-	a.cpu.SetTitle(fmt.Sprintf("CPU - %s", a.current))
-	a.mem.SetTitle(fmt.Sprintf("MEM - %s", a.current))
-}
-
-func (a *App) init() {
-	a.update()
-	a.initInfo()
-	a.initItems()
-	a.frame = tview.NewGrid().
-		SetRows(1, 0).
-		SetColumns(0).
-		AddItem(a.header, 0, 0, 1, 1, 0, 0, false).
-		AddItem(a.items, 1, 0, 1, 1, 0, 0, false)
-	a.frame.SetBorder(true)
-
-	grid := tview.NewGrid().
-		SetRows(0, 0).
-		SetColumns(0, 0, 0, 0, 0, 0).
-		AddItem(a.cpu, 0, 0, 1, 3, 0, 0, false).
-		AddItem(a.mem, 0, 3, 1, 3, 0, 0, false).
-		AddItem(a.frame, 1, 0, 1, 4, 0, 0, true).
-		AddItem(a.info, 1, 4, 1, 2, 0, 0, false)
-
-	help := tview.NewTextView()
-	help.SetTextAlign(tview.AlignLeft).SetBorder(true).SetBorderColor(a.conf.Selected.Color()).SetBorderPadding(1, 1, 1, 1).SetTitle(helpPageName).SetTitleAlign(tview.AlignLeft)
-	help.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEscape || event.Rune() == 'q' || event.Rune() == '?' {
-			a.pages.HidePage(helpPageName)
-			a.view.SetFocus(a.items)
-			return nil
-		}
-		return event
-	})
-	help.SetText(helpText)
-	helpBox := tview.NewGrid().SetRows(0, 0, 0).SetColumns(0, 0, 0).AddItem(help, 1, 1, 1, 1, 0, 0, true)
-	pages := tview.NewPages().
-		AddPage("app", grid, true, true).
-		AddPage(helpPageName, helpBox, true, false)
-
-	a.pages = pages
-	a.view.SetRoot(pages, true).SetFocus(a.items)
-}
-
-func (a *App) initInfo() {
-	a.info.SetFocusFunc(func() {
-		a.info.SetBorderColor(a.conf.Selected.Color())
-	})
-	a.info.SetBlurFunc(func() {
-		a.info.SetBorderColor(tcell.ColorWhite)
-	})
-	a.info.SetChangedFunc(func() {
-		a.view.Draw()
-	})
-	a.info.SetDoneFunc(func(key tcell.Key) {
-		if key == tcell.KeyEscape {
-			a.info.SetTitle("")
-			a.info.Clear()
-			a.view.SetFocus(a.items)
-		}
-	})
-	a.info.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Rune() {
-		case 'q':
-			a.info.SetTitle("")
-			a.info.Clear()
-			a.view.SetFocus(a.items)
-			return nil
-		case '?':
-			a.pages.ShowPage(helpPageName)
-			a.view.SetFocus(a.pages)
-			return nil
-		}
-		return event
-	})
-}
-
-func (a *App) initItems() {
-	a.items.SetFocusFunc(func() {
-		a.frame.SetBorderColor(a.conf.Selected.Color())
-	})
-	a.items.SetBlurFunc(func() {
-		a.frame.SetBorderColor(tcell.ColorWhite)
-	})
-	a.items.SetChangedFunc(func(index int, mainText, secondaryText string, shortcut rune) {
-		a.setCurrent()
-		a.updateFrame()
-		a.updateGraphs()
-	})
-	a.items.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEnter {
-			if a.current == "" {
-				return event
-			}
-			var output string
-			var err error
-			if a.resource == metrics.POD {
-				output, err = a.client.GetPod(a.current)
-			} else {
-				output, err = a.client.GetNode(a.current)
-			}
-			if err != nil {
-				a.info.SetText(err.Error())
-			} else {
-				a.info.SetText(output)
-			}
-			a.info.SetTitle(a.current)
-			a.view.SetFocus(a.info)
-			return nil
-		}
-		vertical, horizontal := a.items.GetOffset()
-		switch event.Rune() {
-		case 'q':
-			a.view.Stop()
-			return nil
-		case 'j':
-			i := a.items.GetCurrentItem() + 1
-			if i > a.items.GetItemCount()-1 {
-				i = 0
-			}
-			a.items.SetCurrentItem(i)
-			a.setCurrent()
-			a.updateGraphs()
-			return nil
-		case 'k':
-			a.items.SetCurrentItem(a.items.GetCurrentItem() - 1)
-			a.setCurrent()
-			a.updateGraphs()
-			return nil
-		case 'l':
-			a.items.SetOffset(vertical, horizontal+1)
-			a.updateFrame()
-			return nil
-		case 'h':
-			if horizontal-1 < 0 {
-				return nil
-			}
-			a.items.SetOffset(vertical, horizontal-1)
-			a.updateFrame()
-			return nil
-		case '?':
-			a.pages.ShowPage(helpPageName)
-			a.view.SetFocus(a.pages)
-			return nil
-		}
-		return event
-	})
-}
-
-func (a *App) updateFrame() {
-	_, horizontal := a.items.GetOffset()
-	header, _ := tabStrings(a.data, a.resource)
-	a.header.SetText(header[horizontal:])
-}
-
-func (a *App) setCurrent() {
-	line, _ := a.items.GetItemText(a.items.GetCurrentItem())
-	sections := strings.Fields(line)
-	x := 0
-	if a.resource == metrics.POD {
-		x = 1
-	}
-	a.current = sections[x]
 }

@@ -1,2 +1,5 @@
 kubectl-ptop
 out/
+demo.tape
+demos/
+.DS_Store

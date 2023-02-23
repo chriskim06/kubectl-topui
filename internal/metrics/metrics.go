@@ -19,6 +19,7 @@ import (
 	"log"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -30,18 +31,20 @@ type Resource string
 const (
 	POD  Resource = "PODS"
 	NODE Resource = "NODES"
+
+	DIVISOR int64 = 1024 * 1024
 )
 
-// MetricsValues is an object containing the cpu/memory resources for
+// MetricValue is an object containing the cpu/memory resources for
 // a pod/node that is used to populate termui widgets
-type MetricsValues struct {
+type MetricValue struct {
 	Name       string
 	CPUPercent float64
 	MemPercent float64
 	CPUCores   resource.Quantity
-	MemCores   resource.Quantity
 	CPULimit   resource.Quantity
-	MemLimit   resource.Quantity
+	MemCores   int64
+	MemLimit   int64
 
 	Namespace string
 	Node      string
@@ -56,43 +59,42 @@ type MetricsClient struct {
 	k     *kubernetes.Clientset
 	m     *metricsclientset.Clientset
 	flags *genericclioptions.ConfigFlags
+	ns    string
+
+	showManagedFields bool
 }
 
-func New(flags *genericclioptions.ConfigFlags) MetricsClient {
-	k, m, err := getClients(flags)
+func New(flags *genericclioptions.ConfigFlags, showManagedFields bool, ns *string, allNs *bool) MetricsClient {
+	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
+	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
+	k, m, err := clientSets(f)
 	if err != nil {
 		log.Fatal(err)
+	}
+	var namespace string
+	if ns != nil {
+		namespace = *ns
+	} else if allNs != nil && *allNs {
+		namespace = metav1.NamespaceAll
+	} else {
+		namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	return MetricsClient{
 		k:     k,
 		m:     m,
 		flags: flags,
+		ns:    namespace,
+
+		showManagedFields: showManagedFields,
 	}
 }
 
-func getClients(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
-	clientSet, metricsClient, err := clientSets(flags)
-	return clientSet, metricsClient, err
-}
-
-func getNamespace(flags *genericclioptions.ConfigFlags) (string, error) {
-	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
-	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
-
-	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
-	if err != nil {
-		return "", err
-	}
-	return namespace, err
-}
-
-func clientSets(flags *genericclioptions.ConfigFlags) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
-	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
-	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
-
+func clientSets(f cmdutil.Factory) (*kubernetes.Clientset, *metricsclientset.Clientset, error) {
 	var err error
 	config, err := f.ToRESTConfig()
-	flags.ToRESTConfig()
 	if err != nil {
 		return nil, nil, err
 	}

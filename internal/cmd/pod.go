@@ -18,6 +18,7 @@ package cmd
 import (
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
@@ -44,15 +45,18 @@ CPU and memory percentages are calculated by getting the sum of the container
 limits for a given pod.`),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-			app := ui.New(metrics.POD, interval, podOpts, flags)
-			return app.Run()
+			app := ui.New(metrics.POD, interval, podOpts, showManagedFields, flags)
+			_, err := tea.NewProgram(app, tea.WithAltScreen()).Run()
+			return err
 		},
 	}
 )
 
 func init() {
 	podCmd.Flags().StringVarP(&podOpts.Selector, "selector", "l", podOpts.Selector, selectorHelpStr)
+	podCmd.Flags().BoolVarP(&podOpts.AllNamespaces, "all-namespaces", "A", false, allNsHelpStr)
 	podCmd.Flags().IntVar(&interval, "interval", 3, intervalHelpStr)
+	podCmd.Flags().BoolVarP(&showManagedFields, "show-managed-fields", "m", false, showManagedFieldsHelpStr)
 	flags.AddFlags(podCmd.Flags())
 	rootCmd.AddCommand(podCmd)
 }

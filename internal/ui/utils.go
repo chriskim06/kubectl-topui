@@ -3,13 +3,13 @@ package ui
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strings"
-	"text/tabwriter"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-ptop/internal/metrics"
-	"github.com/gdamore/tcell/v2"
-	"github.com/navidys/tvxwidgets"
-	"github.com/rivo/tview"
+	"k8s.io/cli-runtime/pkg/printers"
 )
 
 const helpText = `This app shows metrics for pods and nodes! The graphs display the limit and usage for the cpu and memory of whichever item is selected.
@@ -20,64 +20,63 @@ Keyboard Shortcuts
   - q: quit application or clear pod/node spec
   - ?: open/close this help menu`
 
-var headers = map[metrics.Resource]string{
-	metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tMEM USAGE\tMEM LIMIT\tRESTARTS\tAGE",
-	metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU %\tMEM USAGE\tMEM AVAILABLE\tMEM %",
-}
+var (
+	adaptive = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
+	border   = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder())
+	errStyle = lipgloss.NewStyle().BorderStyle(lipgloss.DoubleBorder()).BorderForeground(lipgloss.Color("9"))
+	headers  = map[metrics.Resource]string{
+		metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tMEM USAGE\tMEM LIMIT\tRESTARTS\tAGE",
+		metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU PERCENT\tMEM USAGE\tMEM AVAILABLE\tMEM PERCENT",
+	}
+)
 
-func tabStrings(data []metrics.MetricsValues, resource metrics.Resource) (string, []string) {
+func tabStrings(data []metrics.MetricValue, resource metrics.Resource) (string, []string) {
 	var b bytes.Buffer
-	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
+	w := printers.GetNewTabWriter(&b)
 	fmt.Fprintln(w, headers[resource])
-	for _, m := range data {
-		fmt.Fprintln(w, fmtStr(m, resource))
+	for i, m := range data {
+		writeMetric(w, m, resource)
+		if i != len(data)-1 {
+			fmt.Fprint(w, "\n")
+		}
 	}
 	w.Flush()
 	strs := strings.Split(b.String(), "\n")
 	header := strs[0]
-	items := strs[1 : len(strs)-1]
+	items := strs[1:]
 	return header, items
 }
 
-func fmtStr(m metrics.MetricsValues, resource metrics.Resource) string {
+func writeMetric(w io.Writer, m metrics.MetricValue, resource metrics.Resource) {
 	if resource == metrics.POD {
-		return fmt.Sprintf(
-			"%s\t%s\t%s\t%s\t%s\t%vm\t%vm\t%vMi\t%vMi\t%d\t%s",
-			m.Namespace,
-			m.Name,
-			fmt.Sprintf("%d/%d", m.Ready, m.Total),
-			m.Status,
-			m.Node,
-			m.CPUCores.MilliValue(),
-			m.CPULimit.MilliValue(),
-			m.MemCores.Value()/(1024*1024),
-			m.MemLimit.Value()/(1024*1024),
-			m.Restarts,
-			m.Age,
-		)
+		fmt.Fprintf(w, "%v\t", m.Namespace)
+		fmt.Fprintf(w, "%v\t", m.Name)
+		fmt.Fprintf(w, "%s\t", fmt.Sprintf("%d/%d", m.Ready, m.Total))
+		fmt.Fprintf(w, "%v\t", m.Status)
+		fmt.Fprintf(w, "%v\t", m.Node)
+		fmt.Fprintf(w, "%vm\t", m.CPUCores.MilliValue())
+		fmt.Fprintf(w, "%vm\t", m.CPULimit.MilliValue())
+		fmt.Fprintf(w, "%vMi\t", m.MemCores)
+		fmt.Fprintf(w, "%vMi\t", m.MemLimit)
+		fmt.Fprintf(w, "%v\t", m.Restarts)
+		fmt.Fprintf(w, "%v", m.Age)
 	} else {
-		return fmt.Sprintf(
-			"%s\t%vm\t%vm\t%0.2f%%\t%vMi\t%vMi\t%0.2f%%",
-			m.Name,
-			m.CPUCores.MilliValue(),
-			m.CPULimit.MilliValue(),
-			m.CPUPercent,
-			m.MemCores.Value()/(1024*1024),
-			m.MemLimit.Value()/(1024*1024),
-			m.MemPercent,
-		)
+		fmt.Fprintf(w, "%v\t", m.Name)
+		fmt.Fprintf(w, "%vm\t", m.CPUCores.MilliValue())
+		fmt.Fprintf(w, "%vm\t", m.CPULimit.MilliValue())
+		fmt.Fprintf(w, "%.2f", m.CPUPercent)
+		w.Write([]byte("%%\t"))
+		fmt.Fprintf(w, " %vMi\t", m.MemCores)
+		fmt.Fprintf(w, " %vMi\t", m.MemLimit)
+		fmt.Fprintf(w, " %.2f", m.MemPercent)
+		w.Write([]byte("%%"))
 	}
 }
 
-func NewPlot(limit, usage tcell.Color) *tvxwidgets.Plot {
-	plot := tvxwidgets.NewPlot()
-	plot.SetMarker(tvxwidgets.PlotMarkerBraille)
-	plot.SetTitleAlign(tview.AlignLeft)
-	plot.SetBorder(true)
-	plot.SetBorderPadding(1, 1, 1, 1)
-	plot.SetLineColor([]tcell.Color{
-		limit,
-		usage,
-	})
-	return plot
+func toColor(s string) lipgloss.Color {
+	b, ok := asciigraph.ColorNames[s]
+	if !ok {
+		return adaptive.GetForeground().(lipgloss.Color)
+	}
+	return lipgloss.Color(fmt.Sprintf("%d", b))
 }
