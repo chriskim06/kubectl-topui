@@ -10,6 +10,8 @@ builds:
   - darwin
   goarch:
   - amd64
+  ldflags:
+  - -s -w -X github.com/chriskim06/kubectl-topui/internal/cmd.tag={{.Version}}
 archives:
 - builds:
   - kubectl-topui

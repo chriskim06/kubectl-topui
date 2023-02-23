@@ -29,7 +29,6 @@ Keyboard Shortcuts:
   - q: quit
   - j: scroll down
   - k: scroll up
-  - ?: display help modal
   - enter: view spec for selected item`
 )
 
