@@ -108,7 +108,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				var output string
 				var err error
 				if a.resource == metrics.POD {
-					output, err = a.client.GetPod(a.itemsPane.GetSelected())
+					output, err = a.client.GetPod(a.itemsPane.GetSelected(), a.itemsPane.GetNamespace())
 				} else {
 					output, err = a.client.GetNode(a.itemsPane.GetSelected())
 				}

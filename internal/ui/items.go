@@ -106,11 +106,20 @@ func (l *List) SetSize(width, height int) {
 }
 
 func (l List) GetSelected() string {
-	current := l.content.SelectedItem().(listItem)
-	sections := strings.Fields(string(current))
+	sections := l.getSections()
 	x := 0
 	if l.resource == metrics.POD {
 		x = 1
 	}
 	return sections[x]
+}
+
+func (l List) GetNamespace() string {
+	sections := l.getSections()
+	return sections[0]
+}
+
+func (l List) getSections() []string {
+	current := l.content.SelectedItem().(listItem)
+	return strings.Fields(string(current))
 }

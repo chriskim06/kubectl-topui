@@ -136,8 +136,8 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 	return values, nil
 }
 
-func (m MetricsClient) GetPod(name string) (string, error) {
-	pod, err := m.k.CoreV1().Pods(m.ns).Get(context.Background(), name, metav1.GetOptions{})
+func (m MetricsClient) GetPod(name, ns string) (string, error) {
+	pod, err := m.k.CoreV1().Pods(ns).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

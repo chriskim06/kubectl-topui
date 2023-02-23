@@ -1,5 +1,5 @@
 kubectl-topui
 out/
-demo.tape
+topui.tape
 demos/
 .DS_Store
