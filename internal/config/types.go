@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/viper"
 )
 
@@ -13,9 +13,9 @@ const configPath = "~/.config/kubectl-topui/config.yml"
 var (
 	config          Config
 	once            sync.Once
-	defaultSelected = ColorString("pink")
-	defaultLimit    = ColorString("red")
-	defaultUsage    = ColorString("darkcyan")
+	defaultSelected = Color("13")
+	defaultLimit    = Color("9")
+	defaultUsage    = Color("10")
 	defaultColors   = Colors{
 		Selected: defaultSelected,
 		CPULimit: defaultLimit,
@@ -29,23 +29,19 @@ type Config struct {
 	Theme Colors `json:"theme" yaml:"theme"`
 }
 
-type ColorString string
+type Color lipgloss.Color
 
-func (c *ColorString) UnmarshalJSON(data []byte) error {
-	s := string(data)
-	if strings.Contains(s, "\"") {
-		s = strings.Trim(s, "\"")
-	}
-	*c = ColorString(s)
+func (c *Color) UnmarshalJSON(data []byte) error {
+	*c = Color(lipgloss.Color(string(data)))
 	return nil
 }
 
 type Colors struct {
-	Selected ColorString `json:"selected" yaml:"selected"`
-	CPULimit ColorString `json:"cpuLimit" yaml:"cpuLimit"`
-	CPUUsage ColorString `json:"cpuUsage" yaml:"cpuUsage"`
-	MemLimit ColorString `json:"memLimit" yaml:"memLimit"`
-	MemUsage ColorString `json:"memUsage" yaml:"memUsage"`
+	Selected Color `json:"selected" yaml:"selected"`
+	CPULimit Color `json:"cpuLimit" yaml:"cpuLimit"`
+	CPUUsage Color `json:"cpuUsage" yaml:"cpuUsage"`
+	MemLimit Color `json:"memLimit" yaml:"memLimit"`
+	MemUsage Color `json:"memUsage" yaml:"memUsage"`
 }
 
 func initConfig() {

@@ -7,10 +7,8 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-topui/internal/config"
 	"github.com/chriskim06/kubectl-topui/internal/metrics"
-	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 )
@@ -39,12 +37,8 @@ type App struct {
 func New(resource metrics.Resource, interval int, options interface{}, showManagedFields bool, flags *genericclioptions.ConfigFlags) *App {
 	conf := config.GetTheme()
 	items := NewList(resource, conf)
-	graphColor := asciigraph.White
-	if !lipgloss.HasDarkBackground() {
-		graphColor = asciigraph.Black
-	}
 	loading := spinner.New(spinner.WithSpinner(spinner.Dot))
-	graphs := NewGraphs(conf, graphColor)
+	graphs := NewGraphs(conf)
 	var ns *string
 	var allNs *bool
 	if resource == metrics.POD {
@@ -81,10 +75,15 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.height = msg.Height
 		a.width = msg.Width
 		half := msg.Height / 2
-		thirdRounded := (msg.Width / 3) + (msg.Width % 3)
-		a.graphsPane.SetSize(msg.Width, half)
-		a.itemsPane.SetSize(msg.Width-thirdRounded-5, half)
-		a.infoPane.SetSize(thirdRounded, half)
+		third := msg.Width / 3
+		twothirds := msg.Width - third
+		a.graphsPane.Update(tea.WindowSizeMsg{
+			Width:  msg.Width,
+			Height: half,
+		})
+		//         a.graphsPane.SetSize(msg.Width, half)
+		a.itemsPane.SetSize(twothirds, half)
+		a.infoPane.SetSize(third, half)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "ctrl+c":
@@ -163,7 +162,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (a App) View() string {
 	if a.err != nil {
-		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, utils.ErrStyle.Width(a.width/2).Height(a.height/2).Render("ERROR:\n\n"+a.err.Error()))
+		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, ErrStyle.Width(a.width/2).Height(a.height/2).Render("ERROR:\n\n"+a.err.Error()))
 	}
 	if !a.ready || !a.sizeReady {
 		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, a.loading.View()+"Initializing...")

@@ -6,31 +6,41 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/chriskim06/asciigraph"
+	plot "github.com/chriskim06/bubble-plot"
 	"github.com/chriskim06/kubectl-topui/internal/config"
-	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
+)
+
+var (
+	plotStyle = Border.Copy().Margin(0, 1).Padding(0, 1)
+	ph, pv    = plotStyle.GetFrameSize()
 )
 
 type Graphs struct {
-	Height     int
-	Width      int
-	conf       config.Colors
-	graphColor asciigraph.AnsiColor
-	name       string
-	cpuData    map[string][][]float64
-	memData    map[string][][]float64
-	cpuMax     float64
-	memMax     float64
-	cpuMin     float64
-	memMin     float64
-	style      lipgloss.Style
+	Height  int
+	Width   int
+	conf    config.Colors
+	name    string
+	cpuData map[string][][]float64
+	memData map[string][][]float64
+	cpuMax  float64
+	memMax  float64
+	cpuMin  float64
+	memMin  float64
+	style   lipgloss.Style
+	cpuPlot *plot.Model
+	memPlot *plot.Model
 }
 
-func NewGraphs(conf config.Colors, graphColor asciigraph.AnsiColor) *Graphs {
+func NewGraphs(conf config.Colors) *Graphs {
+	cpuPlot := plot.New()
+	memPlot := plot.New()
+	cpuPlot.Styles.Container = plotStyle
+	memPlot.Styles.Container = plotStyle
 	return &Graphs{
-		conf:       conf,
-		graphColor: graphColor,
-		style:      utils.Border.Copy().Align(lipgloss.Top).BorderForeground(utils.Adaptive.Copy().GetForeground()),
+		conf:    conf,
+		style:   Border.Copy().Align(lipgloss.Top).BorderForeground(Adaptive.Copy().GetForeground()),
+		cpuPlot: cpuPlot,
+		memPlot: memPlot,
 	}
 }
 
@@ -40,23 +50,32 @@ func (g Graphs) Init() tea.Cmd {
 
 func (g *Graphs) Update(msg tea.Msg) (Graphs, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		g.SetSize(msg.Width, msg.Height)
+		m := tea.WindowSizeMsg{
+			Width:  (msg.Width / 2) - ph,
+			Height: msg.Height - pv,
+		}
+		//         g.cpuPlot.Styles.Container.MaxHeight(msg.Height - 5).Height(msg.Height - 5)
+		//         g.memPlot.Styles.Container.MaxHeight(msg.Height - 5).Height(msg.Height - 5)
+		g.cpuPlot.Update(m)
+		g.memPlot.Update(m)
 	case tickMsg:
 		g.updateData(msg.name, msg.cpuData, msg.memData)
+		g.cpuPlot.Title = fmt.Sprintf("CPU - %s", g.name)
+		g.memPlot.Title = fmt.Sprintf("MEM - %s", g.name)
+		g.cpuPlot.Update(plot.GraphUpdateMsg{
+			Data: g.cpuData[g.name],
+		})
+		g.memPlot.Update(plot.GraphUpdateMsg{
+			Data: g.memData[g.name],
+		})
 	}
 	return *g, nil
 }
 
 func (g *Graphs) View() string {
-	cpuColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.CPULimit)], asciigraph.ColorNames[string(g.conf.CPUUsage)])
-	memColors := asciigraph.SeriesColors(asciigraph.ColorNames[string(g.conf.MemLimit)], asciigraph.ColorNames[string(g.conf.MemUsage)])
-	cpuPlot := g.plot(g.cpuData[g.name], "CPU", asciigraph.Min(g.cpuMin), asciigraph.Max(g.cpuMax), cpuColors)
-	memPlot := g.plot(g.memData[g.name], "MEM", asciigraph.Min(g.memMin), asciigraph.Max(g.memMax), memColors)
-	cpuTitle := utils.Truncate(fmt.Sprintf("CPU - %s", g.name), g.Width/2-2)
-	memTitle := utils.Truncate(fmt.Sprintf("MEM - %s", g.name), g.Width/2-2)
-	cpuPlot = fmt.Sprintf("%s\n%s", cpuTitle, cpuPlot)
-	memPlot = fmt.Sprintf("%s\n%s", memTitle, memPlot)
-	g.style = g.style.MaxWidth(g.Width / 2).MaxHeight(g.Height).Width(g.Width/2 - 2)
-	return lipgloss.JoinHorizontal(lipgloss.Top, g.style.Render(cpuPlot), g.style.Render(memPlot))
+	return lipgloss.JoinHorizontal(lipgloss.Top, g.cpuPlot.View(), g.memPlot.View())
 }
 
 func (g *Graphs) updateData(name string, cpuData, memData map[string][][]float64) {
@@ -87,16 +106,16 @@ func (g *Graphs) updateData(name string, cpuData, memData map[string][][]float64
 	}
 }
 
-func (g Graphs) plot(data [][]float64, caption string, o ...asciigraph.Option) string {
-	options := []asciigraph.Option{
-		asciigraph.Width(0),
-		asciigraph.Height(g.Height - 7),
-		asciigraph.AxisColor(g.graphColor),
-		asciigraph.LabelColor(g.graphColor),
-	}
-	options = append(options, o...)
-	return asciigraph.PlotMany(data, options...)
-}
+// func (g Graphs) plot(data [][]float64, caption string, o ...asciigraph.Option) string {
+//     options := []asciigraph.Option{
+//         asciigraph.Width(0),
+//         asciigraph.Height(g.Height - 7),
+//         asciigraph.AxisColor(g.graphColor),
+//         asciigraph.LabelColor(g.graphColor),
+//     }
+//     options = append(options, o...)
+//     return asciigraph.PlotMany(data, options...)
+// }
 
 func (g *Graphs) SetSize(width, height int) {
 	g.Width = width

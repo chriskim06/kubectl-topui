@@ -8,7 +8,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/kubectl-topui/internal/config"
-	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
 	"github.com/muesli/reflow/padding"
 	"github.com/muesli/reflow/wrap"
 )
@@ -26,7 +25,7 @@ type Info struct {
 func NewInfo(conf config.Colors) *Info {
 	return &Info{
 		conf:    conf,
-		style:   utils.Border.Copy().Padding(0),
+		style:   Border.Copy().Padding(0),
 		content: viewport.New(0, 0),
 	}
 }
@@ -47,9 +46,9 @@ func (i *Info) Update(msg tea.Msg) (Info, tea.Cmd) {
 
 func (i Info) View() string {
 	if i.focused {
-		i.style.BorderForeground(utils.ToColor(string(i.conf.Selected)))
+		i.style.BorderForeground(lipgloss.Color(i.conf.Selected))
 	} else {
-		i.style.BorderForeground(utils.Adaptive.Copy().GetForeground())
+		i.style.BorderForeground(Adaptive.Copy().GetForeground())
 	}
 	return i.style.Render(i.content.View())
 }
@@ -62,7 +61,8 @@ func (i *Info) SetContent(s string) {
 func (i *Info) SetSize(width, height int) {
 	i.Width = width
 	i.Height = height
-	i.style = i.style.Width(i.Width).Height(i.Height)
+	i.style = i.style.Width(i.Width).Height(i.Height).MaxWidth(i.Width).MaxHeight(i.Height).Margin(0, 1)
+	//     i.style = i.style.Width(i.Width).Height(i.Height).Width(i.Width).Height(i.Height)
 	if i.yaml != "" {
 		i.setText()
 	}
