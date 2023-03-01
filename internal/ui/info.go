@@ -25,7 +25,7 @@ type Info struct {
 func NewInfo(conf config.Colors) *Info {
 	return &Info{
 		conf:    conf,
-		style:   Border.Copy().Padding(0),
+		style:   lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Padding(0),
 		content: viewport.New(0, 0),
 	}
 }
@@ -59,17 +59,19 @@ func (i *Info) SetContent(s string) {
 }
 
 func (i *Info) SetSize(width, height int) {
-	i.Width = width
+	i.Width = width - 4
 	i.Height = height
-	i.style = i.style.Width(i.Width).Height(i.Height).MaxWidth(i.Width).MaxHeight(i.Height).Margin(0, 1)
-	//     i.style = i.style.Width(i.Width).Height(i.Height).Width(i.Width).Height(i.Height)
+	i.style.Width(i.Width).Height(i.Height)
+	h, v := i.style.GetFrameSize()
+	i.content.Width = i.Width - h
+	i.content.Height = i.Height - v
 	if i.yaml != "" {
 		i.setText()
 	}
 }
 
 func (i *Info) setText() {
-	v, h := i.style.GetFrameSize()
+	h, v := i.style.GetFrameSize()
 	i.content.Width = i.Width - h
 	i.content.Height = i.Height - v
 	content := wrap.String(padding.String(i.yaml, uint(i.content.Width)), i.content.Width)

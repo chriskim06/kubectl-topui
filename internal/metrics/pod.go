@@ -55,8 +55,8 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 
 	var err error
 	selector := labels.Everything()
-	if len(o.Selector) > 0 {
-		selector, err = labels.Parse(o.Selector)
+	if len(o.LabelSelector) > 0 {
+		selector, err = labels.Parse(o.LabelSelector)
 		if err != nil {
 			return nil, err
 		}

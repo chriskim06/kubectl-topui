@@ -25,6 +25,6 @@ var (
 	// right/left margins = 1 for all cells
 
 	Adaptive = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
-	Border   = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Margin(1)
+	Border   = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder())
 	ErrStyle = lipgloss.NewStyle().BorderStyle(lipgloss.DoubleBorder()).BorderForeground(lipgloss.Color("9"))
 )

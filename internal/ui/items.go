@@ -50,6 +50,7 @@ type List struct {
 	resource metrics.Resource
 	content  list.Model
 	style    lipgloss.Style
+	maxLen   int
 }
 
 func NewList(resource metrics.Resource, conf config.Colors) *List {
@@ -77,10 +78,15 @@ func (l *List) Update(msg tea.Msg) (List, tea.Cmd) {
 		l.content, cmd = l.content.Update(msg)
 	case tickMsg:
 		header, items := utils.TabStrings(msg.m, l.resource)
+		max := 0
 		listItems := []list.Item{}
 		for _, item := range items {
 			listItems = append(listItems, listItem(item))
+			if len(item) > max {
+				max = len(item)
+			}
 		}
+		l.maxLen = max
 		l.content.Title = header
 		l.content.SetItems(listItems)
 	}
@@ -93,17 +99,23 @@ func (l List) View() string {
 	} else {
 		l.style.BorderForeground(Adaptive.Copy().GetForeground())
 	}
+	//     s := l.style.Height(l.Height)
+	//     s = l.style.Width(l.Width)
+	//         if l.maxLen < l.content.Width() {
+	//         s = l.style.Width(l.Width - third)
+	//     } else {
+	//         s = l.style.MaxWidth(l.Width - third).Width(l.Width - third)
+	//     }
+	l.style.Width(l.Width).Height(l.Height)
+	h, v := l.style.GetFrameSize()
+	l.content.Styles.TitleBar.Width(l.Width - h)
+	l.content.SetSize(l.Width-h, l.Height-v)
 	return l.style.Render(l.content.View())
 }
 
 func (l *List) SetSize(width, height int) {
 	l.Width = width
 	l.Height = height
-	//     l.style = l.style.Width(l.Width).Height(l.Height)
-	l.style = l.style.MaxWidth(l.Width).Width(l.Width).MaxHeight(l.Height).Height(l.Height).Margin(0, 1)
-	v, h := l.style.GetFrameSize()
-	l.content.Styles.TitleBar.Width(l.Width - h).MaxWidth(l.Width - h)
-	l.content.SetSize(l.Width-h, l.Height-v)
 }
 
 func (l List) GetSelected() string {

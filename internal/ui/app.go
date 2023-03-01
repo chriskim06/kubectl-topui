@@ -76,13 +76,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.width = msg.Width
 		half := msg.Height / 2
 		third := msg.Width / 3
-		twothirds := msg.Width - third
-		a.graphsPane.Update(tea.WindowSizeMsg{
-			Width:  msg.Width,
-			Height: half,
-		})
-		//         a.graphsPane.SetSize(msg.Width, half)
-		a.itemsPane.SetSize(twothirds, half)
+		a.graphsPane.SetSize(msg.Width, half)
+		a.itemsPane.SetSize(msg.Width-third, half)
 		a.infoPane.SetSize(third, half)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
@@ -149,9 +144,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case spinner.TickMsg:
 		if a.ready && a.sizeReady {
 			a.loading = nil
-			half := a.height / 2
-			thirdRounded := (a.width / 3) + (a.width % 3)
-			a.itemsPane.SetSize(a.width-thirdRounded-5, half)
+			//             half := a.height / 2
+			//             thirdRounded := (a.width / 3) + (a.width % 3)
+			//             a.itemsPane.SetSize(a.width-thirdRounded-5, half)
 			return a, nil
 		}
 		*a.loading, cmd = a.loading.Update(msg)
@@ -168,7 +163,8 @@ func (a App) View() string {
 		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, a.loading.View()+"Initializing...")
 	}
 	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.infoPane.View())
-	return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), bottom)
+	return lipgloss.JoinVertical(lipgloss.Left, a.graphsPane.View(), bottom)
+	// return lipgloss.JoinVertical(lipgloss.Left, a.graphsPane.View(), a.itemsPane.View())
 }
 
 type tickMsg struct {
