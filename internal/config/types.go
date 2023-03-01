@@ -13,39 +13,31 @@ const configPath = "~/.config/kubectl-topui/config.yml"
 var (
 	config          Config
 	once            sync.Once
-	defaultSelected = Color("13")
-	defaultLimit    = Color("9")
-	defaultUsage    = Color("10")
-	defaultColors   = Colors{
-		Selected: defaultSelected,
-		CPULimit: defaultLimit,
-		CPUUsage: defaultUsage,
-		MemLimit: defaultLimit,
-		MemUsage: defaultUsage,
-	}
+	defaultSelected = 13
+	defaultLimit    = 9
+	defaultUsage    = 10
 )
 
 type Config struct {
 	Theme Colors `json:"theme" yaml:"theme"`
 }
 
-type Color lipgloss.Color
-
-func (c *Color) UnmarshalJSON(data []byte) error {
-	*c = Color(lipgloss.Color(string(data)))
-	return nil
-}
-
 type Colors struct {
-	Selected Color `json:"selected" yaml:"selected"`
-	CPULimit Color `json:"cpuLimit" yaml:"cpuLimit"`
-	CPUUsage Color `json:"cpuUsage" yaml:"cpuUsage"`
-	MemLimit Color `json:"memLimit" yaml:"memLimit"`
-	MemUsage Color `json:"memUsage" yaml:"memUsage"`
+	Selected int `json:"selected" yaml:"selected"`
+	CPULimit int `json:"cpuLimit" yaml:"cpuLimit"`
+	CPUUsage int `json:"cpuUsage" yaml:"cpuUsage"`
+	MemLimit int `json:"memLimit" yaml:"memLimit"`
+	MemUsage int `json:"memUsage" yaml:"memUsage"`
+	Axis     int `json:"axis" yaml:"axis"`
+	Labels   int `json:"labels" yaml:"labels"`
 }
 
 func initConfig() {
 	once.Do(func() {
+		defaultColor := 231
+		if !lipgloss.HasDarkBackground() {
+			defaultColor = 0
+		}
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("$HOME/.config/kubectl-topui/")
@@ -54,10 +46,20 @@ func initConfig() {
 		viper.SetDefault("theme.cpuUsage", defaultUsage)
 		viper.SetDefault("theme.memLimit", defaultLimit)
 		viper.SetDefault("theme.memUsage", defaultUsage)
+		viper.SetDefault("theme.axis", defaultColor)
+		viper.SetDefault("theme.labels", defaultColor)
 		if err := viper.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 				// Config file not found use default
-				config = Config{Theme: defaultColors}
+				config = Config{Theme: Colors{
+					Selected: defaultSelected,
+					CPULimit: defaultLimit,
+					CPUUsage: defaultUsage,
+					MemLimit: defaultLimit,
+					MemUsage: defaultUsage,
+					Axis:     defaultColor,
+					Labels:   defaultColor,
+				}}
 				return
 			}
 		}

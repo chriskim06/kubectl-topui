@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/alecthomas/chroma/quick"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -46,7 +47,7 @@ func (i *Info) Update(msg tea.Msg) (Info, tea.Cmd) {
 
 func (i Info) View() string {
 	if i.focused {
-		i.style.BorderForeground(lipgloss.Color(i.conf.Selected))
+		i.style.BorderForeground(lipgloss.Color(fmt.Sprintf("%d", i.conf.Selected)))
 	} else {
 		i.style.BorderForeground(Adaptive.Copy().GetForeground())
 	}

@@ -95,17 +95,10 @@ func (l *List) Update(msg tea.Msg) (List, tea.Cmd) {
 
 func (l List) View() string {
 	if l.focused {
-		l.style.BorderForeground(lipgloss.Color(l.conf.Selected))
+		l.style.BorderForeground(lipgloss.Color(fmt.Sprintf("%d", l.conf.Selected)))
 	} else {
 		l.style.BorderForeground(Adaptive.Copy().GetForeground())
 	}
-	//     s := l.style.Height(l.Height)
-	//     s = l.style.Width(l.Width)
-	//         if l.maxLen < l.content.Width() {
-	//         s = l.style.Width(l.Width - third)
-	//     } else {
-	//         s = l.style.MaxWidth(l.Width - third).Width(l.Width - third)
-	//     }
 	l.style.Width(l.Width).Height(l.Height)
 	h, v := l.style.GetFrameSize()
 	l.content.Styles.TitleBar.Width(l.Width - h)

@@ -37,6 +37,12 @@ func NewGraphs(conf config.Colors) *Graphs {
 	memPlot := plot.New()
 	cpuPlot.Styles.Container = plotStyle.Copy()
 	memPlot.Styles.Container = plotStyle.Copy()
+	cpuPlot.Styles.LineColors = []int{conf.CPULimit, conf.CPUUsage}
+	cpuPlot.Styles.AxisColor = conf.Axis
+	cpuPlot.Styles.LabelColor = conf.Labels
+	memPlot.Styles.LineColors = []int{conf.MemLimit, conf.MemUsage}
+	memPlot.Styles.AxisColor = conf.Axis
+	memPlot.Styles.LabelColor = conf.Labels
 	return &Graphs{
 		conf:    conf,
 		cpuPlot: cpuPlot,
@@ -63,7 +69,7 @@ func (g *Graphs) View() string {
 func (g *Graphs) SetSize(width, height int) {
 	m := tea.WindowSizeMsg{
 		Width:  (width / 2) - ph,
-		Height: height - pv - 1,
+		Height: height - pv,
 	}
 	g.cpuPlot.Update(m)
 	g.memPlot.Update(m)

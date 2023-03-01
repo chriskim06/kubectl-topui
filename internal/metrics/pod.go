@@ -76,7 +76,7 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 	if len(metrics.Items) == 0 {
 		// If the API server query is successful but all the pods are newly created,
 		// the metrics are probably not ready yet, so we return the error here in the first place.
-		e := verifyEmptyMetrics(*o, nil)
+		e := verifyEmptyMetrics(*o, selector)
 		if e != nil {
 			return nil, e
 		}

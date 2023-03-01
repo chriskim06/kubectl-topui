@@ -15,7 +15,6 @@ import (
 
 type App struct {
 	client     metrics.MetricsClient
-	conf       config.Colors
 	cpuData    map[string][][]float64
 	memData    map[string][][]float64
 	resource   metrics.Resource
@@ -39,16 +38,13 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 	items := NewList(resource, conf)
 	loading := spinner.New(spinner.WithSpinner(spinner.Dot))
 	graphs := NewGraphs(conf)
-	var ns *string
 	var allNs *bool
 	if resource == metrics.POD {
 		allNamespaces := options.(*top.TopPodOptions).AllNamespaces
 		allNs = &allNamespaces
-		ns = flags.Namespace
 	}
 	app := &App{
-		client:     metrics.New(flags, showManagedFields, ns, allNs),
-		conf:       conf,
+		client:     metrics.New(flags, showManagedFields, allNs),
 		resource:   resource,
 		options:    options,
 		cpuData:    map[string][][]float64{},
@@ -144,9 +140,6 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case spinner.TickMsg:
 		if a.ready && a.sizeReady {
 			a.loading = nil
-			//             half := a.height / 2
-			//             thirdRounded := (a.width / 3) + (a.width % 3)
-			//             a.itemsPane.SetSize(a.width-thirdRounded-5, half)
 			return a, nil
 		}
 		*a.loading, cmd = a.loading.Update(msg)
@@ -162,9 +155,11 @@ func (a App) View() string {
 	if !a.ready || !a.sizeReady {
 		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, a.loading.View()+"Initializing...")
 	}
-	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.infoPane.View())
-	return lipgloss.JoinVertical(lipgloss.Left, a.graphsPane.View(), bottom)
-	// return lipgloss.JoinVertical(lipgloss.Left, a.graphsPane.View(), a.itemsPane.View())
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		a.graphsPane.View(),
+		lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.infoPane.View()),
+	)
 }
 
 type tickMsg struct {

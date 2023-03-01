@@ -7,7 +7,7 @@ require (
 	github.com/charmbracelet/bubbles v0.15.0
 	github.com/charmbracelet/bubbletea v0.23.2
 	github.com/charmbracelet/lipgloss v0.6.0
-	github.com/chriskim06/bubble-plot v0.0.0-20230301144844-6cd0d9c33dce
+	github.com/chriskim06/bubble-plot v0.0.0-20230301172455-f39534ecfc90
 	github.com/muesli/reflow v0.3.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
