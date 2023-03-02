@@ -53,7 +53,7 @@ limits for a given pod.`),
 )
 
 func init() {
-	podCmd.Flags().StringVarP(&podOpts.Selector, "selector", "l", podOpts.Selector, selectorHelpStr)
+	podCmd.Flags().StringVarP(&podOpts.LabelSelector, "selector", "l", podOpts.LabelSelector, selectorHelpStr)
 	podCmd.Flags().BoolVarP(&podOpts.AllNamespaces, "all-namespaces", "A", false, allNsHelpStr)
 	podCmd.Flags().IntVar(&interval, "interval", 3, intervalHelpStr)
 	podCmd.Flags().BoolVarP(&showManagedFields, "show-managed-fields", "m", false, showManagedFieldsHelpStr)

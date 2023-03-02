@@ -6,8 +6,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
-	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-topui/internal/metrics"
 	"github.com/muesli/reflow/truncate"
 	"k8s.io/cli-runtime/pkg/printers"
@@ -22,10 +20,7 @@ Keyboard Shortcuts
   - ?: open/close this help menu`
 
 var (
-	Adaptive = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "0", Dark: "15"})
-	Border   = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder())
-	ErrStyle = lipgloss.NewStyle().BorderStyle(lipgloss.DoubleBorder()).BorderForeground(lipgloss.Color("9"))
-	headers  = map[metrics.Resource]string{
+	headers = map[metrics.Resource]string{
 		metrics.POD:  "NAMESPACE\tNAME\tREADY\tSTATUS\tNODE\tCPU USAGE\tCPU LIMIT\tMEM USAGE\tMEM LIMIT\tRESTARTS\tAGE",
 		metrics.NODE: "NAME\tCPU USAGE\tCPU AVAILABLE\tCPU PERCENT\tMEM USAGE\tMEM AVAILABLE\tMEM PERCENT",
 	}
@@ -72,14 +67,6 @@ func writeMetric(w io.Writer, m metrics.MetricValue, resource metrics.Resource) 
 		fmt.Fprintf(w, " %.2f", m.MemPercent)
 		w.Write([]byte("%%"))
 	}
-}
-
-func ToColor(s string) lipgloss.Color {
-	b, ok := asciigraph.ColorNames[s]
-	if !ok {
-		return Adaptive.GetForeground().(lipgloss.Color)
-	}
-	return lipgloss.Color(fmt.Sprintf("%d", b))
 }
 
 func Truncate(s string, width int) string {

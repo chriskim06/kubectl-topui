@@ -2,13 +2,13 @@ package ui
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/alecthomas/chroma/quick"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chriskim06/kubectl-topui/internal/config"
-	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
 	"github.com/muesli/reflow/padding"
 	"github.com/muesli/reflow/wrap"
 )
@@ -26,7 +26,7 @@ type Info struct {
 func NewInfo(conf config.Colors) *Info {
 	return &Info{
 		conf:    conf,
-		style:   utils.Border.Copy().Padding(0),
+		style:   lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Padding(0),
 		content: viewport.New(0, 0),
 	}
 }
@@ -47,9 +47,9 @@ func (i *Info) Update(msg tea.Msg) (Info, tea.Cmd) {
 
 func (i Info) View() string {
 	if i.focused {
-		i.style.BorderForeground(utils.ToColor(string(i.conf.Selected)))
+		i.style.BorderForeground(lipgloss.Color(fmt.Sprintf("%d", i.conf.Selected)))
 	} else {
-		i.style.BorderForeground(utils.Adaptive.Copy().GetForeground())
+		i.style.BorderForeground(Adaptive.Copy().GetForeground())
 	}
 	return i.style.Render(i.content.View())
 }
@@ -60,16 +60,19 @@ func (i *Info) SetContent(s string) {
 }
 
 func (i *Info) SetSize(width, height int) {
-	i.Width = width
+	i.Width = width - 4
 	i.Height = height
-	i.style = i.style.Width(i.Width).Height(i.Height)
+	i.style.Width(i.Width).Height(i.Height)
+	h, v := i.style.GetFrameSize()
+	i.content.Width = i.Width - h
+	i.content.Height = i.Height - v
 	if i.yaml != "" {
 		i.setText()
 	}
 }
 
 func (i *Info) setText() {
-	v, h := i.style.GetFrameSize()
+	h, v := i.style.GetFrameSize()
 	i.content.Width = i.Width - h
 	i.content.Height = i.Height - v
 	content := wrap.String(padding.String(i.yaml, uint(i.content.Width)), i.content.Width)

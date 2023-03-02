@@ -36,9 +36,9 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		line = utils.Truncate(line, m.Width())
 	}
 	if index == m.Index() {
-		fmt.Fprintf(w, utils.Adaptive.Copy().Background(lipgloss.Color("245")).Bold(true).Render(line))
+		fmt.Fprintf(w, Adaptive.Copy().Background(lipgloss.Color("245")).Bold(true).Render(line))
 	} else {
-		fmt.Fprintf(w, utils.Adaptive.Copy().Render(line))
+		fmt.Fprintf(w, Adaptive.Copy().Render(line))
 	}
 }
 
@@ -50,6 +50,7 @@ type List struct {
 	resource metrics.Resource
 	content  list.Model
 	style    lipgloss.Style
+	maxLen   int
 }
 
 func NewList(resource metrics.Resource, conf config.Colors) *List {
@@ -62,7 +63,7 @@ func NewList(resource metrics.Resource, conf config.Colors) *List {
 		conf:     conf,
 		content:  itemList,
 		focused:  true,
-		style:    utils.Border.Copy().Padding(0, 1),
+		style:    Border.Copy().Padding(0, 1),
 	}
 }
 
@@ -77,10 +78,15 @@ func (l *List) Update(msg tea.Msg) (List, tea.Cmd) {
 		l.content, cmd = l.content.Update(msg)
 	case tickMsg:
 		header, items := utils.TabStrings(msg.m, l.resource)
+		max := 0
 		listItems := []list.Item{}
 		for _, item := range items {
 			listItems = append(listItems, listItem(item))
+			if len(item) > max {
+				max = len(item)
+			}
 		}
+		l.maxLen = max
 		l.content.Title = header
 		l.content.SetItems(listItems)
 	}
@@ -89,20 +95,20 @@ func (l *List) Update(msg tea.Msg) (List, tea.Cmd) {
 
 func (l List) View() string {
 	if l.focused {
-		l.style.BorderForeground(utils.ToColor(string(l.conf.Selected)))
+		l.style.BorderForeground(lipgloss.Color(fmt.Sprintf("%d", l.conf.Selected)))
 	} else {
-		l.style.BorderForeground(utils.Adaptive.Copy().GetForeground())
+		l.style.BorderForeground(Adaptive.Copy().GetForeground())
 	}
+	l.style.Width(l.Width).Height(l.Height)
+	h, v := l.style.GetFrameSize()
+	l.content.Styles.TitleBar.Width(l.Width - h)
+	l.content.SetSize(l.Width-h, l.Height-v)
 	return l.style.Render(l.content.View())
 }
 
 func (l *List) SetSize(width, height int) {
 	l.Width = width
 	l.Height = height
-	l.style = l.style.Width(l.Width).Height(l.Height)
-	v, h := l.style.GetFrameSize()
-	l.content.Styles.TitleBar.Width(l.Width - h).MaxWidth(l.Width - h)
-	l.content.SetSize(l.Width-h, l.Height-v)
 }
 
 func (l List) GetSelected() string {

@@ -7,19 +7,17 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/chriskim06/asciigraph"
 	"github.com/chriskim06/kubectl-topui/internal/config"
 	"github.com/chriskim06/kubectl-topui/internal/metrics"
-	"github.com/chriskim06/kubectl-topui/internal/ui/utils"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/cmd/top"
 )
 
 type App struct {
 	client     metrics.MetricsClient
-	conf       config.Colors
 	cpuData    map[string][][]float64
 	memData    map[string][][]float64
+	labels     []string
 	resource   metrics.Resource
 	options    interface{}
 	current    string
@@ -39,26 +37,20 @@ type App struct {
 func New(resource metrics.Resource, interval int, options interface{}, showManagedFields bool, flags *genericclioptions.ConfigFlags) *App {
 	conf := config.GetTheme()
 	items := NewList(resource, conf)
-	graphColor := asciigraph.White
-	if !lipgloss.HasDarkBackground() {
-		graphColor = asciigraph.Black
-	}
 	loading := spinner.New(spinner.WithSpinner(spinner.Dot))
-	graphs := NewGraphs(conf, graphColor)
-	var ns *string
+	graphs := NewGraphs(conf)
 	var allNs *bool
 	if resource == metrics.POD {
 		allNamespaces := options.(*top.TopPodOptions).AllNamespaces
 		allNs = &allNamespaces
-		ns = flags.Namespace
 	}
 	app := &App{
-		client:     metrics.New(flags, showManagedFields, ns, allNs),
-		conf:       conf,
+		client:     metrics.New(flags, showManagedFields, allNs),
 		resource:   resource,
 		options:    options,
 		cpuData:    map[string][][]float64{},
 		memData:    map[string][][]float64{},
+		labels:     []string{},
 		interval:   time.Duration(interval) * time.Second,
 		itemsPane:  *items,
 		graphsPane: *graphs,
@@ -81,10 +73,10 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.height = msg.Height
 		a.width = msg.Width
 		half := msg.Height / 2
-		thirdRounded := (msg.Width / 3) + (msg.Width % 3)
+		third := msg.Width / 3
 		a.graphsPane.SetSize(msg.Width, half)
-		a.itemsPane.SetSize(msg.Width-thirdRounded-5, half)
-		a.infoPane.SetSize(thirdRounded, half)
+		a.itemsPane.SetSize(msg.Width-third, half)
+		a.infoPane.SetSize(third, half)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "ctrl+c":
@@ -150,9 +142,6 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case spinner.TickMsg:
 		if a.ready && a.sizeReady {
 			a.loading = nil
-			half := a.height / 2
-			thirdRounded := (a.width / 3) + (a.width % 3)
-			a.itemsPane.SetSize(a.width-thirdRounded-5, half)
 			return a, nil
 		}
 		*a.loading, cmd = a.loading.Update(msg)
@@ -163,13 +152,16 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (a App) View() string {
 	if a.err != nil {
-		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, utils.ErrStyle.Width(a.width/2).Height(a.height/2).Render("ERROR:\n\n"+a.err.Error()))
+		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, ErrStyle.Width(a.width/2).Height(a.height/2).Render("ERROR:\n\n"+a.err.Error()))
 	}
 	if !a.ready || !a.sizeReady {
 		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center, a.loading.View()+"Initializing...")
 	}
-	bottom := lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.infoPane.View())
-	return lipgloss.JoinVertical(lipgloss.Top, a.graphsPane.View(), bottom)
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		a.graphsPane.View(),
+		lipgloss.JoinHorizontal(lipgloss.Top, a.itemsPane.View(), a.infoPane.View()),
+	)
 }
 
 type tickMsg struct {
@@ -178,6 +170,7 @@ type tickMsg struct {
 	err     error
 	cpuData map[string][][]float64
 	memData map[string][][]float64
+	labels  []string
 }
 
 func (a *App) tickCmd() tea.Cmd {
@@ -198,6 +191,9 @@ func (a *App) updateData() tea.Msg {
 		fmt.Println(err)
 		return tickMsg{err: err}
 	}
+	if len(a.labels) == 50 {
+		a.labels = a.labels[1:]
+	}
 	for _, metric := range m {
 		name := metric.Name
 		if a.cpuData[name] == nil || a.memData[name] == nil {
@@ -213,11 +209,13 @@ func (a *App) updateData() tea.Msg {
 		a.cpuData[name][1] = append(a.cpuData[name][1], float64(metric.CPUCores.MilliValue()))
 		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit))
 		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores))
+		a.labels = append(a.labels, fmt.Sprintf("%d:%d:%d", metric.Timestamp.Hour(), metric.Timestamp.Minute(), metric.Timestamp.Second()))
 	}
 	return tickMsg{
 		m:       m,
 		name:    m[0].Name,
 		cpuData: a.cpuData,
 		memData: a.memData,
+		labels:  a.labels,
 	}
 }

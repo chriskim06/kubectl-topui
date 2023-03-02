@@ -55,8 +55,8 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 
 	var err error
 	selector := labels.Everything()
-	if len(o.Selector) > 0 {
-		selector, err = labels.Parse(o.Selector)
+	if len(o.LabelSelector) > 0 {
+		selector, err = labels.Parse(o.LabelSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -76,7 +76,7 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 	if len(metrics.Items) == 0 {
 		// If the API server query is successful but all the pods are newly created,
 		// the metrics are probably not ready yet, so we return the error here in the first place.
-		e := verifyEmptyMetrics(*o, nil)
+		e := verifyEmptyMetrics(*o, selector)
 		if e != nil {
 			return nil, e
 		}
@@ -112,6 +112,7 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 			CPULimit:  limits.cpuLimit,
 			MemCores:  mem.Value() / DIVISOR,
 			MemLimit:  limits.memLimit.Value() / DIVISOR,
+			Timestamp: item.Timestamp,
 			Namespace: pod.Namespace,
 			Node:      pod.Spec.NodeName,
 			Status:    string(pod.Status.Phase),

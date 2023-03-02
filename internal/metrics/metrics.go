@@ -50,6 +50,7 @@ type MetricValue struct {
 	CPULimit   resource.Quantity
 	MemCores   int64
 	MemLimit   int64
+	Timestamp  metav1.Time
 
 	Namespace string
 	Node      string
@@ -69,7 +70,7 @@ type MetricsClient struct {
 	showManagedFields bool
 }
 
-func New(flags *genericclioptions.ConfigFlags, showManagedFields bool, ns *string, allNs *bool) MetricsClient {
+func New(flags *genericclioptions.ConfigFlags, showManagedFields bool, allNs *bool) MetricsClient {
 	matchVersionKubeConfigFlags := cmdutil.NewMatchVersionFlags(flags)
 	f := cmdutil.NewFactory(matchVersionKubeConfigFlags)
 	k, m, err := clientSets(f)
@@ -77,15 +78,14 @@ func New(flags *genericclioptions.ConfigFlags, showManagedFields bool, ns *strin
 		log.Fatal(err)
 	}
 	var namespace string
-	if ns != nil {
-		namespace = *ns
+	namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if flags.Namespace != nil && *flags.Namespace != "" {
+		namespace = *flags.Namespace
 	} else if allNs != nil && *allNs {
 		namespace = metav1.NamespaceAll
-	} else {
-		namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 	return MetricsClient{
 		k:     k,
