@@ -17,6 +17,7 @@ type App struct {
 	client     metrics.MetricsClient
 	cpuData    map[string][][]float64
 	memData    map[string][][]float64
+	labels     []string
 	resource   metrics.Resource
 	options    interface{}
 	current    string
@@ -49,6 +50,7 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 		options:    options,
 		cpuData:    map[string][][]float64{},
 		memData:    map[string][][]float64{},
+		labels:     []string{},
 		interval:   time.Duration(interval) * time.Second,
 		itemsPane:  *items,
 		graphsPane: *graphs,
@@ -168,6 +170,7 @@ type tickMsg struct {
 	err     error
 	cpuData map[string][][]float64
 	memData map[string][][]float64
+	labels  []string
 }
 
 func (a *App) tickCmd() tea.Cmd {
@@ -188,6 +191,9 @@ func (a *App) updateData() tea.Msg {
 		fmt.Println(err)
 		return tickMsg{err: err}
 	}
+	if len(a.labels) == 50 {
+		a.labels = a.labels[1:]
+	}
 	for _, metric := range m {
 		name := metric.Name
 		if a.cpuData[name] == nil || a.memData[name] == nil {
@@ -203,11 +209,13 @@ func (a *App) updateData() tea.Msg {
 		a.cpuData[name][1] = append(a.cpuData[name][1], float64(metric.CPUCores.MilliValue()))
 		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit))
 		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores))
+		a.labels = append(a.labels, fmt.Sprintf("%d:%d:%d", metric.Timestamp.Hour(), metric.Timestamp.Minute(), metric.Timestamp.Second()))
 	}
 	return tickMsg{
 		m:       m,
 		name:    m[0].Name,
 		cpuData: a.cpuData,
 		memData: a.memData,
+		labels:  a.labels,
 	}
 }

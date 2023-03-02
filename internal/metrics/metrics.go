@@ -50,6 +50,7 @@ type MetricValue struct {
 	CPULimit   resource.Quantity
 	MemCores   int64
 	MemLimit   int64
+	Timestamp  metav1.Time
 
 	Namespace string
 	Node      string

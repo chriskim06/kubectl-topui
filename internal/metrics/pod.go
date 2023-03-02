@@ -112,6 +112,7 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 			CPULimit:  limits.cpuLimit,
 			MemCores:  mem.Value() / DIVISOR,
 			MemLimit:  limits.memLimit.Value() / DIVISOR,
+			Timestamp: item.Timestamp,
 			Namespace: pod.Namespace,
 			Node:      pod.Spec.NodeName,
 			Status:    string(pod.Status.Phase),

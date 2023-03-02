@@ -7,7 +7,7 @@ require (
 	github.com/charmbracelet/bubbles v0.15.0
 	github.com/charmbracelet/bubbletea v0.23.2
 	github.com/charmbracelet/lipgloss v0.6.0
-	github.com/chriskim06/bubble-plot v0.0.0-20230301172455-f39534ecfc90
+	github.com/chriskim06/bubble-plot v0.0.0-20230302184816-bc8356fec41f
 	github.com/muesli/reflow v0.3.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
@@ -25,7 +25,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/aymanbagabas/go-osc52 v1.2.2 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
-	github.com/chriskim06/drawille-go v0.0.0-20230226233342-2449ca550bd3 // indirect
+	github.com/chriskim06/drawille-go v0.0.0-20230302181717-a5dd98780f5c // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dlclark/regexp2 v1.4.0 // indirect
