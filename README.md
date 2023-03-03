@@ -17,3 +17,30 @@ $ kubectl krew install chriskim06/topui
 
 the demo displays the braille plots a little weird. here is a screenshot
 ![](./screenshot.png)
+
+## Configuration
+
+you can configure this plugin with a file at `~/.config/kubectl-topui/config.yml`
+```
+theme:
+  # color of the border around the selected pane
+  selected: 13
+
+  # color for the cpu limit line in the plot
+  cpuLimit: 9
+
+  # color for the memory limit line in the plot
+  memLimit: 9
+
+  # color for the cpu usage line in the plot
+  cpuUsage: 10
+
+  # color for the memory usage line in the plot
+  memUsage: 10
+
+  # color of the x and y axis of the plots
+  axis: 231
+
+  # color of the axis labels
+  labels: 231
+```
