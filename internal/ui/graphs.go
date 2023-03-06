@@ -31,6 +31,8 @@ type Graphs struct {
 func NewGraphs(conf config.Colors) *Graphs {
 	cpuPlot := plot.New()
 	memPlot := plot.New()
+	cpuPlot.MaxDataPoints = 50
+	memPlot.MaxDataPoints = 50
 	cpuPlot.Styles.LineColors = []int{conf.CPULimit, conf.CPUUsage}
 	cpuPlot.Styles.AxisColor = conf.Axis
 	cpuPlot.Styles.LabelColor = conf.Labels
@@ -50,8 +52,10 @@ func (g Graphs) Init() tea.Cmd {
 
 func (g *Graphs) Update(msg tea.Msg) (Graphs, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		g.SetSize(msg.Width, msg.Height)
 	case tickMsg:
-		g.updateData(msg.name, msg.cpuData, msg.memData)
+		g.updateData(msg.name, msg.cpuData, msg.memData, msg.xAxisLabels)
 	}
 	return *g, nil
 }
@@ -63,23 +67,26 @@ func (g *Graphs) View() string {
 func (g *Graphs) SetSize(width, height int) {
 	m := tea.WindowSizeMsg{
 		Width:  (width / 2) - ph,
-		Height: height - pv - 1,
+		Height: height - pv - 2,
 	}
-	g.cpuPlot.Update(m)
 	g.memPlot.Update(m)
+	g.cpuPlot.Update(m)
 	g.extra = width % 2
 }
 
-func (g *Graphs) updateData(name string, cpuData, memData map[string][][]float64) {
+func (g *Graphs) updateData(name string, cpuData, memData map[string][][]float64, labels []string) {
 	g.name = name
 	g.cpuData = cpuData
 	g.memData = memData
+	g.labels = labels
 	g.cpuPlot.Title = fmt.Sprintf("CPU - %s", g.name)
 	g.memPlot.Title = fmt.Sprintf("MEM - %s", g.name)
 	g.cpuPlot.Update(plot.GraphUpdateMsg{
-		Data: g.cpuData[g.name],
+		Data:   g.cpuData[g.name],
+		Labels: g.labels,
 	})
 	g.memPlot.Update(plot.GraphUpdateMsg{
-		Data: g.memData[g.name],
+		Data:   g.memData[g.name],
+		Labels: g.labels,
 	})
 }

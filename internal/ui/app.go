@@ -14,24 +14,24 @@ import (
 )
 
 type App struct {
-	client     metrics.MetricsClient
-	cpuData    map[string][][]float64
-	memData    map[string][][]float64
-	labels     []string
-	resource   metrics.Resource
-	options    interface{}
-	current    string
-	tick       time.Ticker
-	interval   time.Duration
-	ready      bool
-	sizeReady  bool
-	err        error
-	height     int
-	width      int
-	itemsPane  List
-	graphsPane Graphs
-	infoPane   Info
-	loading    *spinner.Model
+	client      metrics.MetricsClient
+	cpuData     map[string][][]float64
+	memData     map[string][][]float64
+	xAxisLabels *[]string
+	resource    metrics.Resource
+	options     interface{}
+	current     string
+	tick        time.Ticker
+	interval    time.Duration
+	ready       bool
+	sizeReady   bool
+	err         error
+	height      int
+	width       int
+	itemsPane   List
+	graphsPane  Graphs
+	infoPane    Info
+	loading     *spinner.Model
 }
 
 func New(resource metrics.Resource, interval int, options interface{}, showManagedFields bool, flags *genericclioptions.ConfigFlags) *App {
@@ -45,17 +45,17 @@ func New(resource metrics.Resource, interval int, options interface{}, showManag
 		allNs = &allNamespaces
 	}
 	app := &App{
-		client:     metrics.New(flags, showManagedFields, allNs),
-		resource:   resource,
-		options:    options,
-		cpuData:    map[string][][]float64{},
-		memData:    map[string][][]float64{},
-		labels:     []string{},
-		interval:   time.Duration(interval) * time.Second,
-		itemsPane:  *items,
-		graphsPane: *graphs,
-		infoPane:   *NewInfo(conf),
-		loading:    &loading,
+		client:      metrics.New(flags, showManagedFields, allNs),
+		resource:    resource,
+		options:     options,
+		cpuData:     map[string][][]float64{},
+		memData:     map[string][][]float64{},
+		xAxisLabels: &[]string{},
+		interval:    time.Duration(interval) * time.Second,
+		itemsPane:   *items,
+		graphsPane:  *graphs,
+		infoPane:    *NewInfo(conf),
+		loading:     &loading,
 	}
 	return app
 }
@@ -64,7 +64,7 @@ func (a App) Init() tea.Cmd {
 	return tea.Batch(a.loading.Tick, a.updateData)
 }
 
-func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
@@ -74,9 +74,13 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.width = msg.Width
 		half := msg.Height / 2
 		third := msg.Width / 3
-		a.graphsPane.SetSize(msg.Width, half)
 		a.itemsPane.SetSize(msg.Width-third, half)
 		a.infoPane.SetSize(third, half)
+		a.graphsPane.SetSize(msg.Width, half)
+		if a.current != "" {
+			a.graphsPane.updateData(a.current, a.cpuData, a.memData, *a.xAxisLabels)
+		}
+		return a, cmd
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "ctrl+c":
@@ -124,7 +128,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.itemsPane, cmd = a.itemsPane.Update(msg)
 			cmds = append(cmds, cmd)
 			a.current = a.itemsPane.GetSelected()
-			a.graphsPane.updateData(a.current, a.cpuData, a.memData)
+			a.graphsPane.updateData(a.current, a.cpuData, a.memData, *a.xAxisLabels)
 		}
 	case tickMsg:
 		if msg.err != nil {
@@ -135,10 +139,11 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.itemsPane.content.SelectedItem() != nil {
 			msg.name = a.itemsPane.GetSelected()
 		}
+		a.current = msg.name
 		var itemsCmd, graphsCmd tea.Cmd
-		a.itemsPane, itemsCmd = a.itemsPane.Update(msg)
 		a.graphsPane, graphsCmd = a.graphsPane.Update(msg)
-		cmds = append(cmds, itemsCmd, graphsCmd, a.tickCmd())
+		a.itemsPane, itemsCmd = a.itemsPane.Update(msg)
+		cmds = append(cmds, graphsCmd, itemsCmd, a.tickCmd())
 	case spinner.TickMsg:
 		if a.ready && a.sizeReady {
 			a.loading = nil
@@ -165,12 +170,12 @@ func (a App) View() string {
 }
 
 type tickMsg struct {
-	m       []metrics.MetricValue
-	name    string
-	err     error
-	cpuData map[string][][]float64
-	memData map[string][][]float64
-	labels  []string
+	m           []metrics.MetricValue
+	name        string
+	err         error
+	cpuData     map[string][][]float64
+	memData     map[string][][]float64
+	xAxisLabels []string
 }
 
 func (a *App) tickCmd() tea.Cmd {
@@ -188,12 +193,13 @@ func (a *App) updateData() tea.Msg {
 		m, err = a.client.GetNodeMetrics(a.options.(*top.TopNodeOptions))
 	}
 	if err != nil {
-		fmt.Println(err)
 		return tickMsg{err: err}
 	}
-	if len(a.labels) == 50 {
-		a.labels = a.labels[1:]
+	if len(*a.xAxisLabels) == 50 {
+		*a.xAxisLabels = (*a.xAxisLabels)[1:]
 	}
+	t := time.Now()
+	*a.xAxisLabels = append(*a.xAxisLabels, fmt.Sprintf("%02d:%02d:%02d", t.Hour(), t.Minute(), t.Second()))
 	for _, metric := range m {
 		name := metric.Name
 		if a.cpuData[name] == nil || a.memData[name] == nil {
@@ -209,13 +215,12 @@ func (a *App) updateData() tea.Msg {
 		a.cpuData[name][1] = append(a.cpuData[name][1], float64(metric.CPUCores.MilliValue()))
 		a.memData[name][0] = append(a.memData[name][0], float64(metric.MemLimit))
 		a.memData[name][1] = append(a.memData[name][1], float64(metric.MemCores))
-		a.labels = append(a.labels, fmt.Sprintf("%d:%d:%d", metric.Timestamp.Hour(), metric.Timestamp.Minute(), metric.Timestamp.Second()))
 	}
 	return tickMsg{
-		m:       m,
-		name:    m[0].Name,
-		cpuData: a.cpuData,
-		memData: a.memData,
-		labels:  a.labels,
+		m:           m,
+		name:        m[0].Name,
+		cpuData:     a.cpuData,
+		memData:     a.memData,
+		xAxisLabels: *a.xAxisLabels,
 	}
 }
