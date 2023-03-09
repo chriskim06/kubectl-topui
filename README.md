@@ -15,7 +15,7 @@ $ kubectl krew install chriskim06/topui
 
 ![](./demo.gif)
 
-the demo displays the braille plots a little weird. here is a screenshot
+the demo displays the braille plots a little weird because i cant figure out font stuff with the recording software. here is a screenshot
 ![](./screenshot.png)
 
 ## Configuration
