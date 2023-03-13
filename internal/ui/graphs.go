@@ -19,7 +19,6 @@ type Graphs struct {
 	Height  int
 	Width   int
 	extra   int
-	conf    config.Colors
 	name    string
 	cpuData map[string][][]float64
 	memData map[string][][]float64
@@ -29,18 +28,14 @@ type Graphs struct {
 }
 
 func NewGraphs(conf config.Colors) *Graphs {
-	cpuPlot := plot.New()
-	memPlot := plot.New()
-	cpuPlot.MaxDataPoints = 50
-	memPlot.MaxDataPoints = 50
-	cpuPlot.Styles.LineColors = []int{conf.CPULimit, conf.CPUUsage}
-	cpuPlot.Styles.AxisColor = conf.Axis
-	cpuPlot.Styles.LabelColor = conf.Labels
-	memPlot.Styles.LineColors = []int{conf.MemLimit, conf.MemUsage}
-	memPlot.Styles.AxisColor = conf.Axis
-	memPlot.Styles.LabelColor = conf.Labels
+	options := []plot.Option{
+		plot.WithMaxDataPoints(50),
+		plot.WithAxisColor(conf.Axis),
+		plot.WithLabelColor(conf.Labels),
+	}
+	cpuPlot := plot.New(append(options, plot.WithLineColors([]int{conf.CPULimit, conf.CPUUsage}))...)
+	memPlot := plot.New(append(options, plot.WithLineColors([]int{conf.MemLimit, conf.MemUsage}))...)
 	return &Graphs{
-		conf:    conf,
 		cpuPlot: cpuPlot,
 		memPlot: memPlot,
 	}
