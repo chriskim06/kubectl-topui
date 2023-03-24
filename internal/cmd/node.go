@@ -50,6 +50,7 @@ var (
 func init() {
 	nodeCmd.Flags().StringVarP(&nodeOpts.Selector, "selector", "l", nodeOpts.Selector, selectorHelpStr)
 	nodeCmd.Flags().IntVar(&interval, "interval", 3, intervalHelpStr)
+	nodeCmd.Flags().StringVar(&nodeOpts.SortBy, "sort-by", nodeOpts.SortBy, "If non-empty, sort nodes list using specified field. The field can be either 'cpu' or 'memory'.")
 	nodeCmd.Flags().BoolVarP(&showManagedFields, "show-managed-fields", "m", false, showManagedFieldsHelpStr)
 	flags.AddFlags(nodeCmd.Flags())
 	rootCmd.AddCommand(nodeCmd)

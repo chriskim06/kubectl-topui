@@ -56,6 +56,7 @@ func init() {
 	podCmd.Flags().StringVarP(&podOpts.LabelSelector, "selector", "l", podOpts.LabelSelector, selectorHelpStr)
 	podCmd.Flags().BoolVarP(&podOpts.AllNamespaces, "all-namespaces", "A", false, allNsHelpStr)
 	podCmd.Flags().IntVar(&interval, "interval", 3, intervalHelpStr)
+	podCmd.Flags().StringVar(&podOpts.SortBy, "sort-by", podOpts.SortBy, "If non-empty, sort pods list using specified field. The field can be either 'cpu' or 'memory'.")
 	podCmd.Flags().BoolVarP(&showManagedFields, "show-managed-fields", "m", false, showManagedFieldsHelpStr)
 	flags.AddFlags(podCmd.Flags())
 	rootCmd.AddCommand(podCmd)

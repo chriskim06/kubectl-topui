@@ -17,6 +17,8 @@ package metrics
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sort"
 
 	v1 "k8s.io/api/core/v1"
@@ -35,6 +37,9 @@ func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricValue, err
 	o.MetricsClient = m.m
 	o.NodeClient = m.k.CoreV1()
 	o.Printer = metricsutil.NewTopCmdPrinter(o.Out)
+	if o.SortBy != "" && o.SortBy != "cpu" && o.SortBy != "memory" {
+		return nil, errors.New(fmt.Sprintf("invalid sort-by provided: %s", o.SortBy))
+	}
 
 	mc := o.MetricsClient.MetricsV1beta1()
 	nm := mc.NodeMetricses()
@@ -48,6 +53,10 @@ func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricValue, err
 	err = metricsV1beta1api.Convert_v1beta1_NodeMetricsList_To_metrics_NodeMetricsList(versionedMetrics, metrics, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	if o.SortBy != "" {
+		sort.Sort(metricsutil.NewNodeMetricsSorter(metrics.Items, o.SortBy))
 	}
 
 	nodeList, err := o.NodeClient.Nodes().List(context.TODO(), metav1.ListOptions{
@@ -82,10 +91,12 @@ func (m MetricsClient) GetNodeMetrics(o *top.TopNodeOptions) ([]MetricValue, err
 		})
 	}
 
-	// Sort the metrics results somehow
-	sort.Slice(values, func(i, j int) bool {
-		return values[i].Name < values[j].Name
-	})
+	if o.SortBy == "" {
+		// Sort the metrics alphabetically
+		sort.Slice(values, func(i, j int) bool {
+			return values[i].Name < values[j].Name
+		})
+	}
 
 	return values, nil
 }

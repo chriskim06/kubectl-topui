@@ -48,6 +48,9 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 	o.MetricsClient = m.m
 	o.PodClient = m.k.CoreV1()
 	o.Namespace = m.ns
+	if o.SortBy != "" && o.SortBy != "cpu" && o.SortBy != "memory" {
+		return nil, errors.New(fmt.Sprintf("invalid sort-by provided: %s", o.SortBy))
+	}
 
 	versionedMetrics := &metricsv1beta1api.PodMetricsList{}
 	mc := o.MetricsClient.MetricsV1beta1()
@@ -89,6 +92,10 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 		}
 	}
 
+	if o.SortBy != "" {
+		sort.Sort(metricsutil.NewPodMetricsSorter(metrics.Items, o.AllNamespaces, o.SortBy))
+	}
+
 	// maybe loop through containers and sum the cpu/mem limits to calculate percentages
 	podList, err := o.PodClient.Pods(m.ns).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
@@ -123,16 +130,18 @@ func (m *MetricsClient) GetPodMetrics(o *top.TopPodOptions) ([]MetricValue, erro
 		})
 	}
 
-	// Sort the metrics results somehow
-	sort.Slice(values, func(i, j int) bool {
-		if values[i].Namespace < values[j].Namespace {
-			return true
-		} else if values[i].Namespace > values[j].Namespace {
-			return false
-		} else {
-			return values[i].Name < values[j].Name
-		}
-	})
+	if o.SortBy == "" {
+		// Sort the metrics alphabetically by namespace and name
+		sort.Slice(values, func(i, j int) bool {
+			if values[i].Namespace < values[j].Namespace {
+				return true
+			} else if values[i].Namespace > values[j].Namespace {
+				return false
+			} else {
+				return values[i].Name < values[j].Name
+			}
+		})
+	}
 
 	return values, nil
 }
